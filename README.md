@@ -1,7 +1,5 @@
 # self-supervised-learning
-Zoo for self-supervised models
-
-Parameters to set in yaml config file: 
+Parameters to set in yaml config file for byol: 
 
 ```
 byol: 
