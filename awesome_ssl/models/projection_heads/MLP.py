@@ -1,7 +1,7 @@
 import torch 
 
 class MLP(torch.nn.Module): 
-    def __init__(self, input_dim, hidden_dim, output_dim, batchnorm): 
+    def __init__(self, input_dim, hidden_dim, output_dim, batchnorm=True): 
         super().__init__(self)
         self.hidden_layer = torch.nn.Linear(input_dim, hidden_dim)
         if batchnorm: 

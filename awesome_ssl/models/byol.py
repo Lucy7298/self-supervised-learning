@@ -1,0 +1,76 @@
+import awesome_ssl.models.model_utils
+import torch
+import pytorch_lightning as pl
+
+class BYOL(pl.LightningModule): 
+    def __init__(self, config): 
+        super().__init__(self)
+        self.config = config 
+        self.online_encoder = torch.nn.Sequential([
+            model_utils.build_backbone(config.backbone.encoder), 
+            model_utils.build_projector(config.projection_head.projection)
+        ])
+        self.target_encoder = torch.nn.Sequential([
+            model_utils.build_backbone(config.backbone.encoder), 
+            model_utils.build_projector(config.projection_head.projection)
+        ])
+
+        for target_param in self.target_encoder.parameters(): 
+            target_param.requires_grad = False 
+
+        self.prediction_head = model_utils.build_projector(config.projection_head.predictor)
+        self.loss = torch.nn.MSELoss()
+
+        self.t = config.tau
+        self.accumulate_n_batch = config.accumulate_n_batch
+        self.automatic_optimization = False
+
+        self.transform_1 = build_transform(config.transform_1)
+        self.transform_2 = build_transform(config.transform_2)
+
+    def calculate_loss(self, online_prediction, target): 
+        prediction_norm = online_prediction / \
+            torch.linalg.norm(online_prediction, dim=1, keepdim=True)
+        target_norm = target / \
+            torch.linalg.norm(target, dim=1, keepdim=True)   
+        return self.loss(prediction_norm, target_norm)   
+
+    def training_step(self, batch, batch_idx): 
+        enc_1 = self.transform_1(batch)
+        enc_2 = self.transform_2(batch)
+        on_pred_1= self.prediction_head(self.online_encoder(enc_1))
+        target_1 = self.target_encoder(enc_1).detach() 
+        on_pred_2 = self.prediction_head(self.online_encoder(enc_2))
+        target_2 = self.target_encoder(enc_2).detach()
+
+        #complete update step 
+        opt = self.optimizers()
+        loss_1 = self.compute_loss(on_pred_1, target_1)
+        loss_2 = self.compute_loss(on_pred_2, target_2)
+        loss = loss_1 + loss_2
+        loss.backward()
+
+        if batch_idx % self.accumulate_n_batch == 0: 
+            opt.step()
+            opt.zero_grad()
+
+        # update the target network with the online network
+        with torch.no_grad(): 
+            for target_p, online_p in zip(self.target_encoder.parameters(), \
+                                          self.online_encoder.parameters()): 
+                target_p.data = self.t * target_p.data + (1 - self.t) * online_p.data
+
+    def configure_optimizers(self): 
+        # I don't know how to recreate their scheduler :( 
+        optimizer = torch.optim.SGD([
+                {'params': self.online_encoder.parameters()}, 
+                {'params': self.prediction_head.parameters()}
+            ], 
+            lr=0.2, 
+            weight_decay=1.5e-6)
+        return {
+            "optimizer": optimizer
+        }
+
+        
+
