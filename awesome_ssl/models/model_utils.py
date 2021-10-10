@@ -1,28 +1,39 @@
-import pytorch_lightning as ptl 
-from awesome_ssl.models.trunk_models import models
-from awesome_ssl.models.projection_heads import projection_heads
-from torchvision import transforms
+from pydoc import locate
+from dataclasses import dataclass, field
+from typing import Any, Sequence, Dict, MutableMapping, MutableSequence
+import torch
 
-def build_backbone(model_configs): 
-    backbone = models[model_configs['arch']]
-    if model_configs.get('pytorch_pretrained', False): 
-        if model_configs['resume_path'] == 'default': 
-            model = backbone(pretrained=True)
-        else: 
-            raise Exception("Not implemented checkpoint loading yet")
+@dataclass
+class ModuleConfig: 
+    target: str 
+    args: Sequence[Any] = field(default_factory=list)
+    kwargs: Dict[str, Any] = field(default_factory=dict)
+
+def autocast_inputs(config): 
+    if isinstance(config, ModuleConfig): 
+        return config
+    elif isinstance(config, MutableMapping): 
+        return ModuleConfig(**config)
     else: 
-        model = backbone(pretrained=False)
-    return model 
+        raise Exception(f"could not autocast input config {config}")
 
-def build_projector(configs): 
-    projector = projection_heads[configs['type']]
-    return projection_heads(**configs.get('params', {}))
+def build_module(configs: ModuleConfig): 
+    configs = autocast_inputs(configs)
+    module = locate(configs.target)
+    return module(*configs.args, **configs.kwargs) 
 
-def build_transform(configs): 
-    def build_one(one_config): 
-        transf_name = configs['type']
-        transf = transforms.__dict__[transf_name]
-        return transf(configs.get('params', {}))
-    
-    all_transforms = list(map(build_one, configs))
-    return transforms.compose(all_transforms)
+def build_augmentations(configs: Sequence[ModuleConfig]):
+    # need to convert lists in config to tuples 
+    all_transforms = []
+    for conf in configs: 
+        conf = autocast_inputs(conf)
+        arguments = [tuple(ent) if isinstance(ent, MutableSequence) else ent for ent in conf.args]
+        aug_conf = ModuleConfig(target=conf.target, args=arguments, kwargs=conf.kwargs)
+        all_transforms.append(build_module(aug_conf))
+    return torch.nn.Sequential(*all_transforms)
+
+def build_optimizer(configs: ModuleConfig, model_params): 
+    module = locate(configs.target)
+    args = configs.get('args', [])
+    kwargs = configs.get('kwargs', {})
+    return module(model_params, *args, **kwargs)
