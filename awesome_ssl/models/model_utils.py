@@ -2,6 +2,7 @@ from pydoc import locate
 from dataclasses import dataclass, field
 from typing import Any, Sequence, Dict, MutableMapping, MutableSequence
 import torch
+import torchvision
 
 @dataclass
 class ModuleConfig: 
@@ -30,7 +31,10 @@ def build_augmentations(configs: Sequence[ModuleConfig]):
         arguments = [tuple(ent) if isinstance(ent, MutableSequence) else ent for ent in conf.args]
         aug_conf = ModuleConfig(target=conf.target, args=arguments, kwargs=conf.kwargs)
         all_transforms.append(build_module(aug_conf))
-    return torch.nn.Sequential(*all_transforms)
+    if all([isinstance(i, torch.nn.Module) for i in all_transforms]): 
+        return torch.nn.Sequential(*all_transforms)
+    else: 
+        return torchvision.transforms.Compose(all_transforms)
 
 def build_optimizer(configs: ModuleConfig, model_params): 
     module = locate(configs.target)

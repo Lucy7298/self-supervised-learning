@@ -47,7 +47,7 @@ class BYOL(pl.LightningModule):
         return self.loss(prediction_norm, target_norm)   
 
     def training_step(self, batch, batch_idx): 
-        sample, target, fname = batch
+        sample, target = batch
         print("shape of sample", sample.shape)
         enc_1 = self.transform_1(sample)
         enc_2 = self.transform_2(sample)

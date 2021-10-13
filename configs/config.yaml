@@ -1,0 +1,7 @@
+# @package _global_
+
+# specify here default training configuration
+defaults:
+  - _self_
+  - model: byol.yaml
+  - dataset: imagenet_byol.yaml

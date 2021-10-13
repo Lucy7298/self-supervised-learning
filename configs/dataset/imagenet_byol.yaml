@@ -1,0 +1,33 @@
+target: awesome_ssl.datasets.folder_dataset.FolderDataset
+kwargs: 
+  data_path: /mnt/nfs/datasets/imagenet-pytorch
+  preprocess_train: 
+  - target: torchvision.transforms.RandomResizedCrop
+    kwargs:
+      size: 256
+  - target: torchvision.transforms.ToTensor
+  - target: torchvision.transforms.Normalize
+    kwargs: 
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+  preprocess_val: 
+  - target: torchvision.transforms.CenterCrop
+    kwargs:
+      size: 224
+  - target: torchvision.transforms.RandomHorizontalFlip
+  - target: torchvision.transforms.ToTensor
+  - target: torchvision.transforms.Normalize
+    kwargs: 
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+  preprocess_test: 
+  - target: torchvision.transforms.CenterCrop
+    kwargs:
+      size: 224
+  - target: torchvision.transforms.ToTensor
+  - target: torchvision.transforms.Normalize
+    kwargs: 
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+  batch_size: 100
+  train_val_test_dir: ['train', 'val', 'val']
