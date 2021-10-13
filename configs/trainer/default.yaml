@@ -1,0 +1,5 @@
+gpus: -1 #use all available
+max_epochs: 20
+auto_select_gpus: True
+accelerator: ddp
+# 145860

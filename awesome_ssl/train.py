@@ -20,5 +20,5 @@ def train(config: DictConfig) -> Optional[float]:
     model = build_module(config.model)
     datamodule = build_module(config.dataset)
 
-    trainer = Trainer()
+    trainer = Trainer(**config.trainer)
     trainer.fit(model, datamodule=datamodule)

@@ -20,4 +20,4 @@ def test_training_step(model_config, mocker) -> None:
     model = build_module(model_config) 
     mocker.patch.object(model, "optimizers", return_value=model.configure_optimizers()['optimizer'])
     fake_image = torch.rand(100, 3, 256, 256)
-    out = model.training_step((fake_image, 0, 0), 0)
+    out = model.training_step((fake_image, 0), 0)

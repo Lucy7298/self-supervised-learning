@@ -40,22 +40,19 @@ class BYOL(pl.LightningModule):
         self.t = tau
 
     def calculate_loss(self, online_prediction, target): 
-        prediction_norm = online_prediction / \
-            torch.linalg.norm(online_prediction, dim=1, keepdim=True)
-        target_norm = target / \
-            torch.linalg.norm(target, dim=1, keepdim=True)   
+        prediction_norm = torch.nn.functional.normalize(online_prediction)
+        target_norm = torch.nn.functional.normalize(target)  
         return self.loss(prediction_norm, target_norm)   
 
     def training_step(self, batch, batch_idx): 
         sample, target = batch
-        print("shape of sample", sample.shape)
-        enc_1 = self.transform_1(sample)
-        enc_2 = self.transform_2(sample)
-        print("shape of sample after encoding", enc_1.shape)
+        with torch.no_grad(): 
+            enc_1 = self.transform_1(sample)
+            enc_2 = self.transform_2(sample)
+            target_1 = self.target_encoder(enc_1)
+            target_2 = self.target_encoder(enc_2)
         on_pred_1= self.prediction_head(self.online_encoder(enc_1))
-        target_1 = self.target_encoder(enc_1).detach() 
         on_pred_2 = self.prediction_head(self.online_encoder(enc_2))
-        target_2 = self.target_encoder(enc_2).detach()
 
         #complete update step 
         opt = self.optimizers()
