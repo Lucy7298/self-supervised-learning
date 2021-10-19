@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import Any, Sequence, Dict, MutableMapping, MutableSequence
 import torch
 import torchvision
+from omegaconf import OmegaConf
 
 @dataclass
 class ModuleConfig: 
@@ -27,10 +28,8 @@ def build_augmentations(configs: Sequence[ModuleConfig]):
     # need to convert lists in config to tuples 
     all_transforms = []
     for conf in configs: 
-        conf = autocast_inputs(conf)
-        arguments = [tuple(ent) if isinstance(ent, MutableSequence) else ent for ent in conf.args]
-        aug_conf = ModuleConfig(target=conf.target, args=arguments, kwargs=conf.kwargs)
-        all_transforms.append(build_module(aug_conf))
+        conf = OmegaConf.to_container(conf)
+        all_transforms.append(build_module(conf))
     if all([isinstance(i, torch.nn.Module) for i in all_transforms]): 
         return torch.nn.Sequential(*all_transforms)
     else: 
