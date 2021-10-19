@@ -230,7 +230,6 @@ class ResNet(nn.Module):
 
     def _forward(self, x, fake_relu=False, no_relu=False):
         x = self.conv1(x)
-        print(x.shape)
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
@@ -242,7 +241,6 @@ class ResNet(nn.Module):
 
         x = self.avgpool(x)
         pre_out = torch.flatten(x, 1)
-        print(pre_out.shape)
         return pre_out
 
     # Allow for accessing forward method in a inherited class

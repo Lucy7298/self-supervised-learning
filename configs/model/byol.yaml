@@ -17,27 +17,30 @@ kwargs:
   tau: 4.0e-3
   accumulate_n_batch: 1
   transform_1: 
-  - target: kornia.augmentation.CenterCrop
+  - target: torchvision.transforms.RandomCrop
     kwargs: 
       size: 224
-  - target: kornia.augmentation.RandomHorizontalFlip
-  - target: kornia.augmentation.ColorJitter
-  - target: kornia.augmentation.RandomGaussianBlur
-    args: 
-    - [19, 19] #kernel size
-    - [1.0, 1.0] #sigma
-  - target: kornia.augmentation.RandomSolarize
+  - target: torchvision.transforms.RandomHorizontalFlip
+    kwargs: 
+      p: 1
+  - target: torchvision.transforms.ColorJitter
+  - target: torchvision.transforms.GaussianBlur
+    kwargs: 
+      kernel_size: [19, 19] 
+  - target: torchvision.transforms.RandomSolarize
+    kwargs: 
+      threshold: 0.3
   transform_2: 
-  - target: kornia.augmentation.CenterCrop
+  - target: torchvision.transforms.RandomCrop
     kwargs: 
       size: 224
-  - target: kornia.augmentation.RandomHorizontalFlip
-  - target: kornia.augmentation.ColorJitter
-  - target: kornia.augmentation.RandomGaussianBlur
-    args: 
-    - [19, 19] 
-    - [1.0, 1.0] 
-  - target: kornia.augmentation.RandomSolarize
+  - target: torchvision.transforms.ColorJitter
+  - target: torchvision.transforms.GaussianBlur
+    kwargs: 
+      kernel_size: [19, 19] 
+  - target: torchvision.transforms.RandomSolarize
+    kwargs: 
+      threshold: 0.3
   loss_module: 
     target: torch.nn.MSELoss
   optimizer_params: 
@@ -45,4 +48,10 @@ kwargs:
     kwargs: 
       lr: 1.0e-3
       momentum: 0.9
+  linear_evaluate: 1
+  linear_evaluate_config: 
+    target: torch.nn.Linear
+    kwargs: 
+      in_features: 256 
+      out_features: 1000
 
