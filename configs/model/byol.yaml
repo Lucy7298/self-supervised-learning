@@ -16,31 +16,6 @@ kwargs:
       output_dim: 256
   tau: 4.0e-3
   accumulate_n_batch: 1
-  transform_1: 
-  - target: torchvision.transforms.RandomCrop
-    kwargs: 
-      size: 224
-  - target: torchvision.transforms.RandomHorizontalFlip
-    kwargs: 
-      p: 1
-  - target: torchvision.transforms.ColorJitter
-  - target: torchvision.transforms.GaussianBlur
-    kwargs: 
-      kernel_size: [19, 19] 
-  - target: torchvision.transforms.RandomSolarize
-    kwargs: 
-      threshold: 0.3
-  transform_2: 
-  - target: torchvision.transforms.RandomCrop
-    kwargs: 
-      size: 224
-  - target: torchvision.transforms.ColorJitter
-  - target: torchvision.transforms.GaussianBlur
-    kwargs: 
-      kernel_size: [19, 19] 
-  - target: torchvision.transforms.RandomSolarize
-    kwargs: 
-      threshold: 0.3
   loss_module: 
     target: torch.nn.MSELoss
   optimizer_params: 

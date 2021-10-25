@@ -31,8 +31,6 @@ class BYOL(pl.LightningModule):
                 predictor_params: model_utils.ModuleConfig,
                 tau: float, 
                 accumulate_n_batch: int, 
-                transform_1: Sequence[model_utils.ModuleConfig], 
-                transform_2: Sequence[model_utils.ModuleConfig], 
                 loss_module: model_utils.ModuleConfig, 
                 optimizer_params: model_utils.ModuleConfig, 
                 linear_evaluate: Union[int, LinearEvaluateConfig] = 0, 
@@ -62,9 +60,6 @@ class BYOL(pl.LightningModule):
         self.loss = model_utils.build_module(loss_module)
 
         self.automatic_optimization = False
-
-        self.transform_1 = model_utils.build_augmentations(transform_1)
-        self.transform_2 = model_utils.build_augmentations(transform_2)
         self.optimizer_params = optimizer_params
         self.accumulate_n_batch = accumulate_n_batch
         self.t = tau
@@ -75,12 +70,10 @@ class BYOL(pl.LightningModule):
         return self.loss(prediction_norm, target_norm)  
 
     def training_step(self, batch, batch_idx): 
-        sample, target = batch
+        enc_1, enc_2, target = batch
         with torch.no_grad(): 
-            enc_1 = self.transform_1(sample)
-            enc_2 = self.transform_2(sample)
-            target_1 = self.target_encoder(enc_1)
-            target_2 = self.target_encoder(enc_2)
+            target_1 = self.target_encoder(enc_1).detach()
+            target_2 = self.target_encoder(enc_2).detach()
         on_pred_1 = self.prediction_head(self.online_encoder(enc_1))
         on_pred_2 = self.prediction_head(self.online_encoder(enc_2))
 

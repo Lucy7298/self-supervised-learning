@@ -7,6 +7,8 @@ from omegaconf import DictConfig
 from awesome_ssl.models.model_utils import build_module
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.loggers import WandbLogger  # newline 1
+from hydra.utils import instantiate
+from awesome_ssl.datasets.dataloader_utils import return_train_val_dataloaders
 import os
 
 
@@ -20,11 +22,11 @@ def train(config: DictConfig) -> Optional[float]:
     """
 
     model = build_module(config.model)
-    datamodule = build_module(config.dataset)
 
     wandb_logger = WandbLogger(project="BYOL") 
     wandb_logger.log_hyperparams({'output_directory': os.getcwd()})
     trainer = Trainer(**config.trainer, 
                       logger=wandb_logger, 
                       plugins=DDPPlugin(find_unused_parameters=False))
-    trainer.fit(model, datamodule=datamodule)
+    train_dataloader, val_dataloader = return_train_val_dataloaders(config)
+    trainer.fit(model, train_dataloader, val_dataloader)
