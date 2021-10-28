@@ -1,0 +1,6 @@
+target: awesome_ssl.models.eval_byol.BYOL_Eval
+kwargs: 
+  model_class: awesome_ssl.models.byol.BYOL 
+  weight_path: /mnt/nfs/home/yunxingl/self-supervised-learning/outputs/2021-10-25/14-11-53/BYOL/fsf8s7wo/checkpoints/epoch=9-step=64049.ckpt
+  representation_size: 256
+  num_targets: 1000

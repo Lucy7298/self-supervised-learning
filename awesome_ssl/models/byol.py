@@ -12,18 +12,6 @@ class LinearEvaluateConfig(Enum):
     LinearFitTrain = 1 # supported 
     LinearFitSeparate = 2 # not supported
 
-"""
-Stuff to try: 
-1. Fitting classifier separately from the encoder 
-2. Try using entirely different datasets for linear 
-classifier and the encoder
-- separate encoder + classifier updates 
-- do encoder + classifier updates together 
-
-Not entirely sure how I would do this stuff, but maybe the 
-issue here will help: 
-- https://github.com/PyTorchLightning/pytorch-lightning/issues/1089
-"""
 class BYOL(pl.LightningModule): 
     def __init__(self,
                 encoder_params: model_utils.ModuleConfig, 
@@ -63,6 +51,9 @@ class BYOL(pl.LightningModule):
         self.optimizer_params = optimizer_params
         self.accumulate_n_batch = accumulate_n_batch
         self.t = tau
+
+    def __call__(self, x): 
+        return self.prediction_head(self.online_encoder(x))
 
     def calculate_loss(self, online_prediction, target): 
         prediction_norm = torch.nn.functional.normalize(online_prediction)

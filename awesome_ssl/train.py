@@ -22,7 +22,7 @@ def train(config: DictConfig) -> Optional[float]:
     """
 
     model = build_module(config.model)
-
+    print(model)
     wandb_logger = WandbLogger(project="BYOL") 
     wandb_logger.log_hyperparams({'output_directory': os.getcwd()})
     trainer = Trainer(**config.trainer, 
