@@ -4,9 +4,10 @@ import torch.nn.functional as F
 
 import pytorch_lightning as pl
 from typing import Sequence, Optional, Union
-from torchmetrics.functional import accuracy
 from enum import Enum
 import copy 
+import torchmetrics 
+from torchmetrics.functional import accuracy
 
 class LinearEvaluateConfig(Enum): 
     NoLinearEvaluate = 0 # supported
@@ -49,6 +50,8 @@ class BYOL(pl.LightningModule):
         self.optimizer_params = optimizer_params
         self.accumulate_n_batch = accumulate_n_batch
         self.t = tau
+    
+        self.train_accuracy = torchmetrics.Accuracy()
 
     def __call__(self, x): 
         return self.prediction_head(self.online_encoder(x))
@@ -90,9 +93,7 @@ class BYOL(pl.LightningModule):
 
             # log metrics 
             with torch.no_grad(): 
-                self.log("train/class_loss", class_loss/2)
-                self.log("train/class_top1_view1", accuracy(pred_1, target))
-                self.log("train/class_top1_view2", accuracy(pred_2, target))
+                self.log("train/class_accuracy", self.train_accuracy(pred_1, target), on_step=False, on_epoch=True)
 
             self.manual_backward(class_loss)
             # will update linear classifier every step 

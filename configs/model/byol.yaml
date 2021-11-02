@@ -19,10 +19,12 @@ kwargs:
   loss_module: 
     target: torch.nn.MSELoss
   optimizer_params: 
-    target: torch.optim.Adam
+    target: awesome_ssl.optimizers.lars.LARS
     kwargs: 
-      lr: 1.0e-3
+      lr: 0.2
+      eta: 1.0e-3
       weight_decay: 1.0e-6
+      momentum: 0.9
   linear_evaluate: 1
   linear_evaluate_config: 
     target: torch.nn.Linear

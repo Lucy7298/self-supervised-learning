@@ -10,7 +10,7 @@ from pytorch_lightning.loggers import WandbLogger  # newline 1
 from hydra.utils import instantiate
 from awesome_ssl.datasets.dataloader_utils import return_train_val_dataloaders
 import os
-
+import wandb
 
 def train(config: DictConfig) -> Optional[float]:
     """Contains training pipeline.
@@ -29,3 +29,4 @@ def train(config: DictConfig) -> Optional[float]:
                       logger=wandb_logger)
     train_dataloader, val_dataloader = return_train_val_dataloaders(config)
     trainer.fit(model, train_dataloader, val_dataloader)
+    wandb.finish()
