@@ -23,7 +23,9 @@ class BYOL_Eval(pl.LightningModule):
     def training_step(self, batch, batch_idx): 
         X, y = batch
         prediction = self.classifier(self.model(X).detach())
-        return F.cross_entropy(prediction, y)
+        loss = F.cross_entropy(prediction, y)
+        self.log("train/loss", loss)
+        return loss
 
     def validation_step(self, batch, batch_idx): 
         X, y = batch

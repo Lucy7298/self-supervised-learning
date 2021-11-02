@@ -23,7 +23,6 @@ def debug(config: DictConfig) -> Optional[float]:
 
     model = build_module(config.model)
     print(model)
-    trainer = Trainer(**config.trainer, 
-                      plugins=DDPPlugin(find_unused_parameters=False))
+    trainer = Trainer(**config.trainer)
     train_dataloader, val_dataloader = return_train_val_dataloaders(config)
     trainer.fit(model, train_dataloader, val_dataloader)

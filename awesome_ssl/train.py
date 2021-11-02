@@ -26,7 +26,6 @@ def train(config: DictConfig) -> Optional[float]:
     wandb_logger = WandbLogger(project="BYOL") 
     wandb_logger.log_hyperparams({'output_directory': os.getcwd()})
     trainer = Trainer(**config.trainer, 
-                      logger=wandb_logger, 
-                      plugins=DDPPlugin(find_unused_parameters=False))
+                      logger=wandb_logger)
     train_dataloader, val_dataloader = return_train_val_dataloaders(config)
     trainer.fit(model, train_dataloader, val_dataloader)
