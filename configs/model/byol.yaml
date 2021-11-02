@@ -16,8 +16,6 @@ kwargs:
       output_dim: 256
   tau: 4.0e-3
   accumulate_n_batch: 1
-  loss_module: 
-    target: torch.nn.MSELoss
   optimizer_params: 
     target: awesome_ssl.optimizers.lars.LARS
     kwargs: 

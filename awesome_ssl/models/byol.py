@@ -5,7 +5,6 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 from typing import Sequence, Optional, Union
 from enum import Enum
-import copy 
 import torchmetrics 
 from torchmetrics.functional import accuracy
 
@@ -21,7 +20,6 @@ class BYOL(pl.LightningModule):
                 predictor_params: model_utils.ModuleConfig,
                 tau: float, 
                 accumulate_n_batch: int, 
-                loss_module: model_utils.ModuleConfig, 
                 optimizer_params: model_utils.ModuleConfig, 
                 linear_evaluate: Union[int, LinearEvaluateConfig] = 0, 
                 linear_evaluate_config: Optional[model_utils.ModuleConfig] = None): 
@@ -32,7 +30,10 @@ class BYOL(pl.LightningModule):
             model_utils.build_module(projector_params)
         )
 
-        self.target_encoder = copy.deepcopy(self.online_encoder)
+        self.target_encoder = torch.nn.Sequential(
+            model_utils.build_module(encoder_params), 
+            model_utils.build_module(projector_params)
+        )
 
         if isinstance(linear_evaluate, int): 
             linear_evaluate = LinearEvaluateConfig(linear_evaluate)
@@ -44,7 +45,6 @@ class BYOL(pl.LightningModule):
             target_param.requires_grad = False 
 
         self.prediction_head = model_utils.build_module(predictor_params)
-        self.loss = model_utils.build_module(loss_module)
 
         self.automatic_optimization = False
         self.optimizer_params = optimizer_params
@@ -59,7 +59,7 @@ class BYOL(pl.LightningModule):
     def calculate_loss(self, online_prediction, target): 
         prediction_norm = torch.nn.functional.normalize(online_prediction)
         target_norm = torch.nn.functional.normalize(target)  
-        return self.loss(prediction_norm, target_norm)  
+        return F.mse_loss(prediction_norm, target_norm, reduction='sum')
 
     def training_step(self, batch, batch_idx): 
         enc_1, enc_2, target = batch
@@ -90,7 +90,7 @@ class BYOL(pl.LightningModule):
             # should you do backpropogation over 
             # both predicted or one predicted? 
             class_loss = F.cross_entropy(pred_1, target) + F.cross_entropy(pred_2, target)
-
+            self.log("train/class_loss", class_loss)
             # log metrics 
             with torch.no_grad(): 
                 self.log("train/class_accuracy", self.train_accuracy(pred_1, target), on_step=False, on_epoch=True)
@@ -112,8 +112,10 @@ class BYOL(pl.LightningModule):
             X, y = batch
             on_pred = self.prediction_head(self.online_encoder(X))
             pred = self.classifier(on_pred)
+            loss = F.cross_entropy(pred, y)
             self.log("val/class_top1", accuracy(pred, y))
             self.log("val/class_top5", accuracy(pred, y, top_k=5))
+            self.log("val/cross_entropy", loss)
 
     def configure_optimizers(self): 
         # encoder optimizer
