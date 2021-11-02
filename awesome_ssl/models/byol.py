@@ -6,6 +6,7 @@ import pytorch_lightning as pl
 from typing import Sequence, Optional, Union
 from torchmetrics.functional import accuracy
 from enum import Enum
+import copy 
 
 class LinearEvaluateConfig(Enum): 
     NoLinearEvaluate = 0 # supported
@@ -30,10 +31,7 @@ class BYOL(pl.LightningModule):
             model_utils.build_module(projector_params)
         )
 
-        self.target_encoder = torch.nn.Sequential(
-            model_utils.build_module(encoder_params), 
-            model_utils.build_module(projector_params)
-        )
+        self.target_encoder = copy.deepcopy(self.online_encoder)
 
         if isinstance(linear_evaluate, int): 
             linear_evaluate = LinearEvaluateConfig(linear_evaluate)
