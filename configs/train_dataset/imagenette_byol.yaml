@@ -1,0 +1,55 @@
+# taking parameters from here: https://github.com/deepmind/deepmind-research/blob/master/byol/utils/augmentations.py
+
+_target_: awesome_ssl.datasets.simclr_aug.SimCLRAugDataset
+_convert_: all
+root: /mnt/nfs/home/yunxingl/imagenette2/train
+image_size: 224
+transform_1: 
+  _target_: torchvision.transforms.Compose
+  transforms: 
+  - _target_: torchvision.transforms.RandomApply
+    transforms: 
+    - _target_: torchvision.transforms.ColorJitter
+      brightness: 0.4
+      contrast: 0.4
+      saturation: 0.2
+      hue: 0.1
+    p: 0.8
+  - _target_: torchvision.transforms.RandomGrayscale
+    p: 0.2
+  - _target_: torchvision.transforms.RandomHorizontalFlip
+  - _target_: torchvision.transforms.RandomApply
+    transforms: 
+    - _target_: torchvision.transforms.GaussianBlur
+      kernel_size: [3, 3] 
+      sigma: [1.0, 2.0]
+    p: 1.0
+  - _target_: torchvision.transforms.Normalize
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+  - _target_: torchvision.transforms.RandomSolarize
+    threshold: 0.5
+    p: 0.2
+transform_2: 
+  _target_: torchvision.transforms.Compose
+  transforms: 
+  - _target_: torchvision.transforms.RandomApply
+    transforms: 
+    - _target_: torchvision.transforms.ColorJitter
+      brightness: 0.4
+      contrast: 0.4
+      saturation: 0.2
+      hue: 0.1
+    p: 0.8
+  - _target_: torchvision.transforms.RandomGrayscale
+    p: 0.2
+  - _target_: torchvision.transforms.RandomHorizontalFlip
+  - _target_: torchvision.transforms.RandomApply
+    transforms: 
+    - _target_: torchvision.transforms.GaussianBlur
+      kernel_size: [3, 3] 
+      sigma: [1.0, 2.0]
+    p: 0.1
+  - _target_: torchvision.transforms.Normalize
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]

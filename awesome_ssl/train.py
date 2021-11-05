@@ -9,6 +9,7 @@ from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.loggers import WandbLogger  # newline 1
 from hydra.utils import instantiate
 from awesome_ssl.datasets.dataloader_utils import return_train_val_dataloaders
+from pytorch_lightning.callbacks import ModelCheckpoint
 import os
 import wandb
 
@@ -25,8 +26,12 @@ def train(config: DictConfig) -> Optional[float]:
     print(model)
     wandb_logger = WandbLogger(project="BYOL") 
     wandb_logger.log_hyperparams({'output_directory': os.getcwd()})
+
+    checkpoint_callback = ModelCheckpoint(every_n_epochs=int(config.trainer.max_epochs/20), 
+                                          save_top_k=-1)
     trainer = Trainer(**config.trainer, 
-                      logger=wandb_logger)
+                      logger=wandb_logger, 
+                      callbacks=[checkpoint_callback])
     train_dataloader, val_dataloader = return_train_val_dataloaders(config)
     trainer.fit(model, train_dataloader, val_dataloader)
     wandb.finish()
