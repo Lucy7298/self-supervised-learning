@@ -3,3 +3,4 @@ max_epochs: 10
 auto_select_gpus: True
 accelerator: ddp
 precision: 16
+progress_bar_refresh_rate: null

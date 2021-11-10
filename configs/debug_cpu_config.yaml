@@ -2,8 +2,11 @@
 defaults: 
   - _self_
   - model: byol.yaml
-  - train_dataset: imagenet_byol.yaml
-  - val_dataset: imagenet_val.yaml
+  - callbacks: pretrain_callbacks.yaml
+  - train_dataset: imagenette_byol.yaml
+  - val_dataset: imagenette_val.yaml
   - trainer: debug_cpu.yaml
+  - experiment: null
+  - logger: wandb_pretrain.yaml
 
 batch_size: 50

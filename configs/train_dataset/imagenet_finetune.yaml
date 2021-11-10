@@ -3,9 +3,10 @@ root: /mnt/nfs/datasets/imagenet-pytorch/train
 transform: 
   _target_: torchvision.transforms.Compose
   transforms: 
+  - _target_: torchvision.transforms.Resize
+    size: 256
   - _target_: torchvision.transforms.CenterCrop
     size: 224
-  - _target_: torchvision.transforms.RandomHorizontalFlip
   - _target_: torchvision.transforms.ToTensor
   - _target_: torchvision.transforms.Normalize
     mean: [0.485, 0.456, 0.406]
