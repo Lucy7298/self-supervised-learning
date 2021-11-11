@@ -6,7 +6,7 @@ from hydra.utils import instantiate
 def return_train_val_dataloaders(config): 
     
     batch_size = config.batch_size
-    if config.num_workers: 
+    if config.num_workers > 0: 
         num_workers = config.num_workers
     else: 
         num_workers = 4*device_count()

@@ -53,13 +53,13 @@ class BYOL(pl.LightningModule):
     
         self.train_accuracy = torchmetrics.Accuracy()
 
-    def __call__(self, x): 
+    def get_representation(self, x): 
         return self.prediction_head(self.online_encoder(x))
 
     def calculate_loss(self, online_prediction, target): 
         prediction_norm = torch.nn.functional.normalize(online_prediction)
         target_norm = torch.nn.functional.normalize(target)  
-        return F.mse_loss(prediction_norm, target_norm, reduction='sum')
+        return F.mse_loss(prediction_norm, target_norm)
 
     def training_step(self, batch, batch_idx): 
         enc_1, enc_2, target = batch

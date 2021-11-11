@@ -17,12 +17,9 @@ kwargs:
   tau: 4.0e-3
   accumulate_n_batch: 1
   optimizer_params: 
-    target: awesome_ssl.optimizers.lars.LARS
+    target: torch.optim.Adam
     kwargs: 
-      lr: 0.2
-      eta: 1.0e-3
-      weight_decay: 1.0e-6
-      momentum: 0.9
+      lr: 3.0e-4
   linear_evaluate: 1
   linear_evaluate_config: 
     target: torch.nn.Linear

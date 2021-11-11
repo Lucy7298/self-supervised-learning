@@ -18,8 +18,7 @@ class BYOL_Eval(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         model = locate(model_class).load_from_checkpoint(weight_path)
-        self.model = model
-        self.model.eval()
+        self.model = model.eval()
 
         self.classifier = torch.nn.Linear(representation_size, num_targets)
         self.lr = learning_rate
@@ -31,14 +30,14 @@ class BYOL_Eval(pl.LightningModule):
 
     def training_step(self, batch, batch_idx): 
         X, y = batch
-        prediction = self.classifier(self.model(X).detach())
+        prediction = self.classifier(self.model.get_representation(X).detach())
         loss = F.cross_entropy(prediction, y)
         self.log("train/loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx): 
         X, y = batch
-        prediction = self.classifier(self.model(X))
+        prediction = self.classifier(self.model.get_representation(X))
         self.log("val/cross_entropy", F.cross_entropy(prediction, y))
         self.log("val/top-1", accuracy(prediction, y, top_k=1))
         self.log("val/top-5", accuracy(prediction, y, top_k=5))

@@ -21,13 +21,11 @@ seed: 12345
 
 model: 
   kwargs: 
-    weight_path: /mnt/nfs/home/yunxingl/self-supervised-learning/outputs/2021-11-04/22-23-23/BYOL/znaicf73/checkpoints/epoch=49-step=9449.ckpt
+    model_class: awesome_ssl.models.byol_lucidrains.SelfSupervisedLearner
+    weight_path: /mnt/nfs/home/yunxingl/byol-pytorch/examples/lightning/byol-lucidrains/3dxbi8tn/checkpoints/epoch=149-step=11099.ckpt
 
 logger: 
   wandb: 
-    group: 2021-11-04/22-23-23
-
-trainer: 
-  progress_bar_refresh_rate: 0
+    group: byol-lucidrains/3dxbi8tn
 
 num_workers: 4

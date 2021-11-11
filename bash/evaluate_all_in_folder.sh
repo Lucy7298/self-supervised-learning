@@ -1,6 +1,6 @@
 #!/bin/bash
 
-FILES="/mnt/nfs/home/yunxingl/self-supervised-learning/outputs/2021-11-04/22-23-23/BYOL/znaicf73/checkpoints/*.ckpt"
+FILES="/mnt/nfs/home/yunxingl/byol-pytorch/examples/lightning/byol-lucidrains/3dxbi8tn/checkpoints/*.ckpt"
 for f in $FILES; 
 do 
     fnew=$(echo $f | sed -e s/=/'\\='/g)
