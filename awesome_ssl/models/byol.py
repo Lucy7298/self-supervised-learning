@@ -57,9 +57,9 @@ class BYOL(pl.LightningModule):
         return self.prediction_head(self.online_encoder(x))
 
     def calculate_loss(self, online_prediction, target): 
-        prediction_norm = torch.nn.functional.normalize(online_prediction)
-        target_norm = torch.nn.functional.normalize(target)  
-        return F.mse_loss(prediction_norm, target_norm)
+        prediction_norm = torch.nn.functional.normalize(online_prediction, dim=-1)
+        target_norm = torch.nn.functional.normalize(target, dim=-1)  
+        return torch.sum((prediction_norm - target_norm)**2, dim=-1)
 
     def training_step(self, batch, batch_idx): 
         enc_1, enc_2, target = batch
@@ -76,7 +76,7 @@ class BYOL(pl.LightningModule):
 
         loss_1 = self.calculate_loss(on_pred_1, target_2)
         loss_2 = self.calculate_loss(on_pred_2, target_1)
-        loss = loss_1 + loss_2
+        loss = (loss_1 + loss_2).mean()
         self.log("train/loss", loss)
         self.manual_backward(loss)
         if batch_idx % self.accumulate_n_batch == 0: 
