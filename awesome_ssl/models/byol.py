@@ -74,8 +74,8 @@ class BYOL(pl.LightningModule):
         else: 
             opt_enc, opt_class = self.optimizers()
 
-        loss_1 = self.calculate_loss(on_pred_1, target_1)
-        loss_2 = self.calculate_loss(on_pred_2, target_2)
+        loss_1 = self.calculate_loss(on_pred_1, target_2)
+        loss_2 = self.calculate_loss(on_pred_2, target_1)
         loss = loss_1 + loss_2
         self.log("train/loss", loss)
         self.manual_backward(loss)
