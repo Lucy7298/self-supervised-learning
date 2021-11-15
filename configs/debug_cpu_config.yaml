@@ -3,7 +3,7 @@ defaults:
   - _self_
   - model: byol.yaml
   - callbacks: pretrain_callbacks.yaml
-  - train_dataset: imagenette_byol.yaml
+  - train_dataset: imagenette.yaml
   - val_dataset: imagenette_val.yaml
   - trainer: debug_cpu.yaml
   - experiment: null

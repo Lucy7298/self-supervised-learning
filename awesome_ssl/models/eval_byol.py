@@ -7,6 +7,7 @@ import pytorch_lightning as pl
 from torchmetrics.functional import accuracy
 from pydoc import locate
 import re, os
+from typing import Optional
 
 class BYOL_Eval(pl.LightningModule): 
     def __init__(self, 
@@ -25,7 +26,7 @@ class BYOL_Eval(pl.LightningModule):
 
         # log which epoch this model is for
         head, tail = os.path.split(weight_path)
-        m = re.match(r"epoch=(?P<epoch>\d+)-step=(?P<step>\d+).ckpt", tail)
+        m = re.match(r"epoch(=|_)(?P<epoch>\d+)(-step=(?P<step>\d+))?.ckpt", tail)
         self.save_hyperparameters({"epoch_trained": int(m.group('epoch'))})
 
     def training_step(self, batch, batch_idx): 

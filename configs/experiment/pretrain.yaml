@@ -1,21 +1,19 @@
 # @package _global_
 
-# to execute this experiment run:
-# python main.py experiment=linear_fit.yaml
-
-# to debug this experiment run:
-# python main.py experiment=linear_fit.yaml trainer=debug_cpu.yaml
-
 defaults:
   - override /trainer: default.yaml
+  
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
+model: 
+  kwargs: 
+    eval_interval: 20
 
 logger: 
   wandb: 
-    name: evaluation-edit-1
-    group: editing-model
+    name: evaluation-edit-4
+    group: evaluation_edit
     job_type: "pretrain"
 
 trainer: 
