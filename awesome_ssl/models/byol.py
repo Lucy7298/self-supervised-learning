@@ -10,20 +10,21 @@ from torchmetrics.functional import accuracy
 from omegaconf import DictConfig
 from hydra.utils import instantiate
 from torchvision import transforms as T
+import copy
 
 class TrainStage(Enum): 
     PRETRAIN = 0 
     LINEAR_FIT = 1
 
-DEFAULT_AUG = torch.nn.Sequential(
+DEFAULT_TRAIN_AUG = torch.nn.Sequential(
     T.RandomApply(
-        T.ColorJitter(0.8, 0.8, 0.8, 0.2),
+        [T.ColorJitter(0.8, 0.8, 0.8, 0.2)],
         p = 0.3
     ),
     T.RandomGrayscale(p=0.2),
     T.RandomHorizontalFlip(),
     T.RandomApply(
-        T.GaussianBlur((3, 3), (1.0, 2.0)),
+        [T.GaussianBlur((3, 3), (1.0, 2.0))],
         p = 0.2
     ),
     T.RandomResizedCrop((224, 224)),
@@ -31,6 +32,15 @@ DEFAULT_AUG = torch.nn.Sequential(
         mean=torch.tensor([0.485, 0.456, 0.406]),
         std=torch.tensor([0.229, 0.224, 0.225])),
 )
+
+LINEAR_FIT_TRAIN_TRANFORM = T.Compose([
+        T.RandomHorizontalFlip(),
+        T.Normalize(mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225])
+    ])
+    
+LINEAR_FIT_VAL_TRANFORM = T.Normalize(mean=[0.485, 0.456, 0.406],
+                                      std=[0.229, 0.224, 0.225])
 
 class BYOL(pl.LightningModule): 
     def __init__(self,
@@ -44,18 +54,23 @@ class BYOL(pl.LightningModule):
                 transform_2 : Optional[DictConfig] = None,
                 eval_interval: Optional[int] = -1, #linear evaluate after linear evaluate epochs
                 #if < 0, don't linear evaluate 
-                linear_evaluate_config: Optional[model_utils.ModuleConfig] = None): 
+                linear_evaluate_config: Optional[model_utils.ModuleConfig] = None, 
+                randominit_target: Optional[bool] = True): 
         super().__init__()
         self.save_hyperparameters()
         self.online_encoder = torch.nn.Sequential(
             model_utils.build_module(encoder_params), 
             model_utils.build_module(projector_params)
         )
-
-        self.target_encoder = torch.nn.Sequential(
-            model_utils.build_module(encoder_params), 
-            model_utils.build_module(projector_params)
-        )
+        if randominit_target: 
+            print("randomly initializing target encoder...")
+            self.target_encoder = torch.nn.Sequential(
+                model_utils.build_module(encoder_params), 
+                model_utils.build_module(projector_params)
+            )
+        else: 
+            print("copying target encoder...")
+            self.target_encoder = copy.deepcopy(self.online_encoder)
         self.eval_interval = eval_interval
         if self.eval_interval > 0: 
             self.classifier = model_utils.build_module(linear_evaluate_config)
@@ -75,14 +90,14 @@ class BYOL(pl.LightningModule):
             self.transform_1 = instantiate(transform_1)
         else: 
             print("loading default for transform 1")
-            self.transform_1 = DEFAULT_AUG
+            self.transform_1 = DEFAULT_TRAIN_AUG
         
         if transform_2 is not None: 
             print("instantiating transform 2")
             self.transform_2 = instantiate(transform_2)
         else: 
             print("loading default for transform 2")
-            self.transform_2 = DEFAULT_AUG
+            self.transform_2 = DEFAULT_TRAIN_AUG
     
         self.train_accuracy = torchmetrics.Accuracy()
         self.train_stage = TrainStage.PRETRAIN
@@ -149,6 +164,8 @@ class BYOL(pl.LightningModule):
 
         # complete update step for classifier without label leakage 
         elif self.train_stage == TrainStage.LINEAR_FIT: 
+            with torch.no_grad(): 
+                X = LINEAR_FIT_TRAIN_TRANFORM(X)
             class_loss = self.get_linear_fit_loss(X, y, "train")
             self.manual_backward(class_loss)
             # will update linear classifier every step 
@@ -164,6 +181,8 @@ class BYOL(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         X, y = batch
         if self.train_stage == TrainStage.LINEAR_FIT:
+            with torch.no_grad(): 
+                X = LINEAR_FIT_VAL_TRANFORM(X)
             # log metrics on linear evaluation on validation set 
             self.get_linear_fit_loss(X, y, "val")
 

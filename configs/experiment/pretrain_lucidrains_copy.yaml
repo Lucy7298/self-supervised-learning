@@ -1,0 +1,50 @@
+# @package _global_
+
+defaults:
+  - override /trainer: default.yaml
+  - override /model: null
+  
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+model: 
+  target: awesome_ssl.models.byol.BYOL 
+  kwargs: 
+    encoder_params: 
+      target: awesome_ssl.models.trunk_models.resnets.resnet50
+    projector_params: 
+      target: awesome_ssl.models.projection_heads.MLP.MLP
+      kwargs: 
+        input_dim: 2048
+        hidden_dim: 4096
+        output_dim: 256
+    predictor_params: 
+      target: awesome_ssl.models.projection_heads.MLP.MLP
+      kwargs: 
+        input_dim: 256
+        hidden_dim: 4096
+        output_dim: 256
+    tau: 4.0e-3
+    accumulate_n_batch: 1
+    optimizer_params: 
+      target: torch.optim.Adam
+      kwargs: 
+        lr: 3.0e-4
+    linear_evaluate_config: 
+      target: torch.nn.Linear
+      kwargs: 
+        in_features: 256  # in features
+        out_features: 10 # out features
+    eval_interval: 20
+    randominit_target: False
+
+logger: 
+  wandb: 
+    name: evaluation-edit-4
+    group: evaluation_edit
+    job_type: "pretrain"
+
+trainer: 
+  max_epochs: 1000
+
+num_workers: -1 # use 4 * number of GPUs
