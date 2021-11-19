@@ -10,7 +10,6 @@ defaults:
   - trainer: default.yaml
   - logger: wandb_pretrain.yaml
   - sweep_configs: null
-  - experiment: null
 
 
 batch_size: 50

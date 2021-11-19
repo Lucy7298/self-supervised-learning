@@ -88,6 +88,7 @@ class BYOL(pl.LightningModule):
         if transform_1 is not None: 
             print("instantiating transform 1")
             self.transform_1 = instantiate(transform_1)
+            print(self.transform_1)
         else: 
             print("loading default for transform 1")
             self.transform_1 = DEFAULT_TRAIN_AUG
@@ -95,6 +96,7 @@ class BYOL(pl.LightningModule):
         if transform_2 is not None: 
             print("instantiating transform 2")
             self.transform_2 = instantiate(transform_2)
+            print(self.transform_2)
         else: 
             print("loading default for transform 2")
             self.transform_2 = DEFAULT_TRAIN_AUG

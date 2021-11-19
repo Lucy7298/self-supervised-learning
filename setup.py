@@ -12,7 +12,8 @@ setuptools.setup(
         "torchvision", 
         "pytest", 
         "pytest-mock", 
-        "wandb"],
+        "wandb", 
+        "einops"],
     author_email='',
     packages=setuptools.find_packages(),
     zip_safe=False
