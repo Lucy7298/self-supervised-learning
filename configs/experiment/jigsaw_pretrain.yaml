@@ -50,9 +50,6 @@ model:
         p: 0.3
       - _target_: torchvision.transforms.RandomGrayscale
         p: 0.2
-      - _target_: awesome_ssl.datasets.jigsaw.JigsawAugmentation
-        x_tiles: 4
-        y_tiles: 4
       - _target_: torchvision.transforms.RandomApply
         transforms: 
         - _target_: torchvision.transforms.GaussianBlur
@@ -77,8 +74,8 @@ model:
       - _target_: torchvision.transforms.RandomGrayscale
         p: 0.2
       - _target_: awesome_ssl.datasets.jigsaw.JigsawAugmentation
-        x_tiles: 4
-        y_tiles: 4
+        x_tiles: 32
+        y_tiles: 32
       - _target_: torchvision.transforms.RandomApply
         transforms: 
         - _target_: torchvision.transforms.GaussianBlur
@@ -91,7 +88,7 @@ model:
 
 logger: 
   wandb: 
-    name: evaluation-edit-4
+    name: one_jigsaw_32x32
     group: evaluation_edit
     job_type: "pretrain"
 
