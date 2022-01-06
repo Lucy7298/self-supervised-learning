@@ -1,5 +1,6 @@
 from awesome_ssl.models import model_utils
 import torch
+torch.autograd.set_detect_anomaly(True)
 import torch.nn.functional as F
 
 import pytorch_lightning as pl
@@ -56,17 +57,13 @@ class SimCLR(pl.LightningModule):
                 randominit_target: Optional[bool] = True): 
         super().__init__()
         self.save_hyperparameters()
-        self.encoder = torch.nn.Sequential(
-            model_utils.build_module(encoder_params), 
-            model_utils.build_module(projector_params)
-        )
+        self.encoder = model_utils.build_module(encoder_params)
+        self.prediction_head = model_utils.build_module(projector_params)
         self.eval_interval = eval_interval
         if self.eval_interval > 0: 
             self.classifier = model_utils.build_module(linear_evaluate_config)
 
-        self.automatic_optimization = False
         self.optimizer_params = optimizer_params
-        self.accumulate_n_batch = accumulate_n_batch
 
         if transform_1 is not None: 
             print("instantiating transform 1")
@@ -88,7 +85,7 @@ class SimCLR(pl.LightningModule):
         self.temperature = temperature 
 
     def get_representation(self, x): 
-        return self.prediction_head(self.encoder(x))
+        return self.encoder(x)
 
     def on_train_epoch_start(self): 
         if self.eval_interval > 0: 
@@ -104,27 +101,27 @@ class SimCLR(pl.LightningModule):
                 self.train_stage = TrainStage.PRETRAIN
 
     def get_pretrain_loss(self, enc_1, enc_2, stage): 
+        enc_1 = self.prediction_head(self.encoder(enc_1))
+        enc_2 = self.prediction_head(self.encoder(enc_2))
         N, _ = enc_1.shape
-        on_pred_1 = self.encoder(enc_1) 
-        on_pred_1 = on_pred_1 / on_pred_1.norm(dim=1, keepdims=True)
-        on_pred_2 = self.encoder(enc_2)
-        on_pred_2 = on_pred_2 / on_pred_2.norm(dim=1, keepdims=True)
+        enc_1 = F.normalize(enc_1, dim=1, eps=1.0e-4)
+        enc_2 =  F.normalize(enc_2, dim=1, eps=1.0e-4)
         # Yo what even is this loss
-        all_encodings = torch.cat((on_pred_1, on_pred_2), axis=0)
+        all_encodings = torch.cat((enc_1, enc_2), axis=0)
         # pairwise similarity 
-        similarities = torch.exp(all_encodings @ all_encodings.T / self.temperature)
-        # zero out diagonals 
-        similarities.fill_diagonal_(0)
-        nums = torch.cat(torch.diagonal(similarities, N), torch.diagonal(similarities, -N))
-        denoms = torch.sum(similarities, dim=1)
-        loss = (nums / denoms).mean()
+        similarities = all_encodings @ all_encodings.T / self.temperature
+        mask = torch.eye(2*N, dtype=torch.bool, device=self.device)
+        similarities = similarities[~mask].view(2*N, -1)
+        labels = torch.cat(((torch.arange(N, device=self.device) + N - 1), \
+                             torch.arange(N, device=self.device)), dim=0)
+        loss = F.cross_entropy(similarities, labels, reduction='mean')
         self.log(f"{stage}/pretrain_loss", loss)
         return loss
     
     def get_linear_fit_loss(self, image, label, stage): 
         with torch.no_grad(): 
-            on_pred = self.get_representation(image).detach()
-        pred = self.classifier(on_pred)
+            image = self.get_representation(image).detach()
+        pred = self.classifier(image)
         loss = F.cross_entropy(pred, label)
         with torch.no_grad(): 
             self.log(f"{stage}/linear_top1", accuracy(pred, label))
@@ -142,21 +139,14 @@ class SimCLR(pl.LightningModule):
         if self.train_stage == TrainStage.PRETRAIN: 
             with torch.no_grad(): 
                 enc_1, enc_2 = self.transform_1(X), self.transform_2(X)
-            loss = self.get_pretrain_loss(enc_1, enc_2, "train")
-            self.manual_backward(loss)
-            if batch_idx % self.accumulate_n_batch == 0: 
-                opt_enc.step()
-                opt_enc.zero_grad()
+            # pass through network 
+            return self.get_pretrain_loss(enc_1, enc_2, "train")
 
         # complete update step for classifier without label leakage 
         elif self.train_stage == TrainStage.LINEAR_FIT: 
             with torch.no_grad(): 
                 X = LINEAR_FIT_TRAIN_TRANFORM(X)
-            class_loss = self.get_linear_fit_loss(X, y, "train")
-            self.manual_backward(class_loss)
-            # will update linear classifier every step 
-            opt_class.step()
-            opt_class.zero_grad()
+            return self.get_linear_fit_loss(X, y, "train")
 
 
     def validation_step(self, batch, batch_idx):
@@ -175,6 +165,7 @@ class SimCLR(pl.LightningModule):
         # encoder optimizer
         model_params = [
             {'params': self.encoder.parameters()}, 
+            {'params': self.prediction_head.parameters()}
         ]
         optimizer_enc = model_utils.build_optimizer(self.optimizer_params, model_params)
         if self.eval_interval < 0: 

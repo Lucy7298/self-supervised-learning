@@ -1,0 +1,21 @@
+# @package _global_
+
+defaults:
+  - override /trainer: default.yaml
+  - override /model: simclr
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+logger: 
+  wandb: 
+    name: simclr_pretrain
+    group: debug_simclr
+    job_type: "pretrain"
+
+trainer: 
+  max_epochs: 1000
+  precision: 32
+
+num_workers: -1 # use 4 * number of GPUs
+batch_size: 32
