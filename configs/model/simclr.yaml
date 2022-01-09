@@ -10,10 +10,10 @@ kwargs:
       output_dim: 128
   accumulate_n_batch: 1
   optimizer_params: 
-    target: torch.optim.AdamW
+    target: torch.optim.SGD
     kwargs: 
       lr: 3.0e-4
-  eval_interval: -1
+  eval_interval: 50
   linear_evaluate_config: 
     target: torch.nn.Linear
     kwargs: 

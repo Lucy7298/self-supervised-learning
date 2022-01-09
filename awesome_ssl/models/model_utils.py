@@ -40,3 +40,9 @@ def build_optimizer(configs: ModuleConfig, model_params):
     args = configs.get('args', [])
     kwargs = configs.get('kwargs', {})
     return module(model_params, *args, **kwargs)
+
+def concat_all_gather(pl_module, x): 
+    x = pl_module.all_gather(x, sync_grads=True)
+    ws, B, D = x.shape
+    x = x.view(-1, D)
+    return x

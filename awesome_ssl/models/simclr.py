@@ -63,6 +63,8 @@ class SimCLR(pl.LightningModule):
         if self.eval_interval > 0: 
             self.classifier = model_utils.build_module(linear_evaluate_config)
 
+        self.automatic_optimization = False
+        self.accumulate_n_batch = accumulate_n_batch
         self.optimizer_params = optimizer_params
 
         if transform_1 is not None: 
@@ -87,6 +89,7 @@ class SimCLR(pl.LightningModule):
     def get_representation(self, x): 
         return self.encoder(x)
 
+
     def on_train_epoch_start(self): 
         if self.eval_interval > 0: 
             if self.current_epoch % self.eval_interval == 0: 
@@ -102,7 +105,9 @@ class SimCLR(pl.LightningModule):
 
     def get_pretrain_loss(self, enc_1, enc_2, stage): 
         enc_1 = self.prediction_head(self.encoder(enc_1))
+        enc_1 = model_utils.concat_all_gather(self, enc_1)
         enc_2 = self.prediction_head(self.encoder(enc_2))
+        enc_2 = model_utils.concat_all_gather(self, enc_2)
         N, _ = enc_1.shape
         enc_1 = F.normalize(enc_1, dim=1, eps=1.0e-4)
         enc_2 =  F.normalize(enc_2, dim=1, eps=1.0e-4)
@@ -140,13 +145,21 @@ class SimCLR(pl.LightningModule):
             with torch.no_grad(): 
                 enc_1, enc_2 = self.transform_1(X), self.transform_2(X)
             # pass through network 
-            return self.get_pretrain_loss(enc_1, enc_2, "train")
+            loss = self.get_pretrain_loss(enc_1, enc_2, "train")
+            self.manual_backward(loss)
+            if batch_idx % self.accumulate_n_batch == 0: 
+                opt_enc.step()
+                opt_enc.zero_grad()
 
         # complete update step for classifier without label leakage 
         elif self.train_stage == TrainStage.LINEAR_FIT: 
             with torch.no_grad(): 
                 X = LINEAR_FIT_TRAIN_TRANFORM(X)
-            return self.get_linear_fit_loss(X, y, "train")
+            class_loss = self.get_linear_fit_loss(X, y, "train")
+            self.manual_backward(class_loss)
+            # will update linear classifier every step 
+            opt_class.step()
+            opt_class.zero_grad()
 
 
     def validation_step(self, batch, batch_idx):
