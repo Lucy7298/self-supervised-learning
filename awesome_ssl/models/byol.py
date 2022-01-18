@@ -1,4 +1,5 @@
 from awesome_ssl.models import model_utils
+from awesome_ssl.models.model_utils import LINEAR_FIT_TRAIN_TRANFORM, LINEAR_FIT_VAL_TRANFORM
 import torch
 import torch.nn.functional as F
 
@@ -16,32 +17,6 @@ class TrainStage(Enum):
     PRETRAIN = 0 
     LINEAR_FIT = 1
 
-DEFAULT_TRAIN_AUG = torch.nn.Sequential(
-    T.RandomApply(
-        [T.ColorJitter(0.8, 0.8, 0.8, 0.2)],
-        p = 0.3
-    ),
-    T.RandomGrayscale(p=0.2),
-    T.RandomHorizontalFlip(),
-    T.RandomApply(
-        [T.GaussianBlur((3, 3), (1.0, 2.0))],
-        p = 0.2
-    ),
-    T.RandomResizedCrop((224, 224)),
-    T.Normalize(
-        mean=torch.tensor([0.485, 0.456, 0.406]),
-        std=torch.tensor([0.229, 0.224, 0.225])),
-)
-
-LINEAR_FIT_TRAIN_TRANFORM = T.Compose([
-        T.RandomHorizontalFlip(),
-        T.Normalize(mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225])
-    ])
-    
-LINEAR_FIT_VAL_TRANFORM = T.Normalize(mean=[0.485, 0.456, 0.406],
-                                      std=[0.229, 0.224, 0.225])
-
 class BYOL(pl.LightningModule): 
     def __init__(self,
                 encoder_params: model_utils.ModuleConfig, 
@@ -50,8 +25,7 @@ class BYOL(pl.LightningModule):
                 tau: float, 
                 accumulate_n_batch: int, 
                 optimizer_params: model_utils.ModuleConfig, 
-                transform_1 : Optional[DictConfig] = None, 
-                transform_2 : Optional[DictConfig] = None,
+                transforms: DictConfig, 
                 eval_interval: Optional[int] = -1, #linear evaluate after linear evaluate epochs
                 #if < 0, don't linear evaluate 
                 linear_evaluate_config: Optional[model_utils.ModuleConfig] = None, 
@@ -85,21 +59,9 @@ class BYOL(pl.LightningModule):
         self.accumulate_n_batch = accumulate_n_batch
         self.t = tau
 
-        if transform_1 is not None: 
-            print("instantiating transform 1")
-            self.transform_1 = instantiate(transform_1)
-            print(self.transform_1)
-        else: 
-            print("loading default for transform 1")
-            self.transform_1 = DEFAULT_TRAIN_AUG
-        
-        if transform_2 is not None: 
-            print("instantiating transform 2")
-            self.transform_2 = instantiate(transform_2)
-            print(self.transform_2)
-        else: 
-            print("loading default for transform 2")
-            self.transform_2 = DEFAULT_TRAIN_AUG
+        transforms = instantiate(transforms)
+        self.transform_1 = transforms.transform_1 
+        self.transform_2 = transforms.transform_2
     
         self.train_stage = TrainStage.PRETRAIN
 

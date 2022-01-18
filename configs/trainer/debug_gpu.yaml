@@ -1,3 +1,5 @@
 gpus: -1 #use all available
 auto_select_gpus: True
 fast_dev_run: True
+accelerator: ddp
+precision: 16

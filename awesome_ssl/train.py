@@ -25,7 +25,7 @@ def train(config: DictConfig) -> Optional[float]:
         Optional[float]: Metric score for hyperparameter optimization.
     """
 
-    model = build_module(config.model)
+    model = build_module(config.model, transforms=config.transforms)
     print(model)
     logger = []
     if "logger" in config:
@@ -47,6 +47,7 @@ def train(config: DictConfig) -> Optional[float]:
                       callbacks=callbacks)
     train_dataloader, val_dataloader = return_train_val_dataloaders(config)
     trainer.fit(model, train_dataloader, val_dataloader)
+    trainer.logger.log_hyperparams({"save_directory": os.getcwd()})
     wandb.finish()
 
     # return metric for sweeper 

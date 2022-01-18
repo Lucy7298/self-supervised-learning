@@ -14,7 +14,7 @@ cat test_nb.log'
 
 pretrain_file () {
   echo "running experiment on $1"
-  srun --time=2-00:00:00 --gres=gpu:1080_ti:6 --cpus-per-gpu 4 -n 1 --pty python3 main.py +experiment=$1
+  srun --time=2-00:00:00 --gres=gpu:1080_ti:4 --cpus-per-gpu 4 -n 1 --pty python3 main.py +experiment=$1
 }
 
 debug_file () {
@@ -24,5 +24,5 @@ debug_file () {
 
 debug_file_gpu () {
   echo "debugging config file $1"
-  srun -n 1 -c 2 --gres=gpu:1080_ti:1 --pty python3 main.py +experiment=$1 trainer=debug_gpu
+  srun -n 1 -c 2 --gres=gpu:1080_ti:2 --pty python3 main.py +experiment=$1 trainer=debug_gpu model.kwargs.eval_interval=-1
 }

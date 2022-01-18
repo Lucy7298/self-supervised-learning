@@ -2,16 +2,17 @@
 
 defaults:
   - override /trainer: default.yaml
-  - override /model: simclr
+  - override /model: simclr.yaml
+  - override /transforms: no_greyscale_no_crop.yaml
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
 logger: 
   wandb: 
-    name: simclr_pretrain
-    group: debug_simclr
-    job_type: "pretrain"
+    name: simclr_no_grey_no_crop
+    group: simclr_experiment
+    job_type: pretrain
 
 trainer: 
   max_epochs: 1000

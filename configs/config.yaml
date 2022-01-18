@@ -10,6 +10,6 @@ defaults:
   - trainer: default.yaml
   - logger: wandb_pretrain.yaml
   - sweep_configs: null
-
+  - transforms: simclr_default.yaml
 
 batch_size: 50

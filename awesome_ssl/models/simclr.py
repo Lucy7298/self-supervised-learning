@@ -1,4 +1,5 @@
 from awesome_ssl.models import model_utils
+from awesome_ssl.models.model_utils import LINEAR_FIT_TRAIN_TRANFORM, LINEAR_FIT_VAL_TRANFORM
 import torch
 torch.autograd.set_detect_anomaly(True)
 import torch.nn.functional as F
@@ -11,36 +12,11 @@ from torchmetrics.functional import accuracy
 from omegaconf import DictConfig
 from hydra.utils import instantiate
 from torchvision import transforms as T
+import math
 
 class TrainStage(Enum): 
     PRETRAIN = 0 
     LINEAR_FIT = 1
-
-DEFAULT_TRAIN_AUG = torch.nn.Sequential(
-    T.RandomApply(
-        [T.ColorJitter(0.8, 0.8, 0.8, 0.2)],
-        p = 0.3
-    ),
-    T.RandomGrayscale(p=0.2),
-    T.RandomHorizontalFlip(),
-    T.RandomApply(
-        [T.GaussianBlur((3, 3), (1.0, 2.0))],
-        p = 0.2
-    ),
-    T.RandomResizedCrop((224, 224)),
-    T.Normalize(
-        mean=torch.tensor([0.485, 0.456, 0.406]),
-        std=torch.tensor([0.229, 0.224, 0.225])),
-)
-
-LINEAR_FIT_TRAIN_TRANFORM = T.Compose([
-        T.RandomHorizontalFlip(),
-        T.Normalize(mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225])
-    ])
-    
-LINEAR_FIT_VAL_TRANFORM = T.Normalize(mean=[0.485, 0.456, 0.406],
-                                      std=[0.229, 0.224, 0.225])
 
 class SimCLR(pl.LightningModule): 
     def __init__(self,
@@ -49,8 +25,7 @@ class SimCLR(pl.LightningModule):
                 accumulate_n_batch: int, 
                 optimizer_params: model_utils.ModuleConfig, 
                 temperature: float, 
-                transform_1 : Optional[DictConfig] = None, 
-                transform_2 : Optional[DictConfig] = None,
+                transforms: DictConfig,
                 eval_interval: Optional[int] = -1, #linear evaluate after linear evaluate epochs
                 #if < 0, don't linear evaluate 
                 linear_evaluate_config: Optional[model_utils.ModuleConfig] = None, 
@@ -67,21 +42,11 @@ class SimCLR(pl.LightningModule):
         self.accumulate_n_batch = accumulate_n_batch
         self.optimizer_params = optimizer_params
 
-        if transform_1 is not None: 
-            print("instantiating transform 1")
-            self.transform_1 = instantiate(transform_1)
-            print(self.transform_1)
-        else: 
-            print("loading default for transform 1")
-            self.transform_1 = DEFAULT_TRAIN_AUG
-        
-        if transform_2 is not None: 
-            print("instantiating transform 2")
-            self.transform_2 = instantiate(transform_2)
-            print(self.transform_2)
-        else: 
-            print("loading default for transform 2")
-            self.transform_2 = DEFAULT_TRAIN_AUG
+        transforms = instantiate(transforms)
+        self.transform_1 = transforms.transform_1
+        print("transform 1", self.transform_1)
+        self.transform_2 = transforms.transform_2 
+        print("transform 2", self.transform_2)
     
         self.train_stage = TrainStage.PRETRAIN
         self.temperature = temperature 
@@ -104,24 +69,30 @@ class SimCLR(pl.LightningModule):
                 self.train_stage = TrainStage.PRETRAIN
 
     def get_pretrain_loss(self, enc_1, enc_2, stage): 
+        # select indexes 
         enc_1 = self.prediction_head(self.encoder(enc_1))
-        enc_1 = model_utils.concat_all_gather(self, enc_1)
+        enc_1 = F.normalize(enc_1, dim=1)
+        enc_1_all = model_utils.concat_all_gather(self, enc_1)
+
         enc_2 = self.prediction_head(self.encoder(enc_2))
-        enc_2 = model_utils.concat_all_gather(self, enc_2)
-        N, _ = enc_1.shape
-        enc_1 = F.normalize(enc_1, dim=1, eps=1.0e-4)
-        enc_2 =  F.normalize(enc_2, dim=1, eps=1.0e-4)
-        # Yo what even is this loss
-        all_encodings = torch.cat((enc_1, enc_2), axis=0)
-        # pairwise similarity 
-        similarities = all_encodings @ all_encodings.T / self.temperature
-        mask = torch.eye(2*N, dtype=torch.bool, device=self.device)
-        similarities = similarities[~mask].view(2*N, -1)
-        labels = torch.cat(((torch.arange(N, device=self.device) + N - 1), \
-                             torch.arange(N, device=self.device)), dim=0)
-        loss = F.cross_entropy(similarities, labels, reduction='mean')
-        self.log(f"{stage}/pretrain_loss", loss)
-        return loss
+        enc_2 =  F.normalize(enc_2, dim=1)
+        enc_2_all = model_utils.concat_all_gather(self, enc_2)
+
+        batch_samples = torch.cat((enc_1, enc_2), axis=0)
+        all_samples = torch.cat((enc_1_all, enc_2_all), axis=0)
+
+        # calculate positive similarity 
+        pos = torch.einsum("ij,ij->i", enc_1, enc_2).unsqueeze(-1)
+        pos = torch.exp(torch.cat((pos, pos), axis=0) / self.temperature)
+
+        # calculate denominator 
+        neg = torch.exp((batch_samples @ all_samples.t()) / self.temperature)
+        neg = torch.sum(neg, dim=-1)
+        row_sub = torch.Tensor(neg.shape).fill_(math.e ** (1 / self.temperature)).to(neg.device)
+        neg = torch.clamp(neg - row_sub, min=1.0e-6)
+        loss = -1*torch.log(pos / (neg + 1.0e-6))
+        self.log(f"{stage}/pretrain_loss", loss.mean())
+        return loss.mean()
     
     def get_linear_fit_loss(self, image, label, stage): 
         with torch.no_grad(): 
@@ -194,6 +165,3 @@ class SimCLR(pl.LightningModule):
                 {"optimizer": optimizer_enc}, 
                 {"optimizer": optimizer_class}
             )
-
-        
-
