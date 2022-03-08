@@ -1,7 +1,7 @@
 target: awesome_ssl.models.eval_byol.BYOL_Eval
 kwargs: 
-  model_class: awesome_ssl.models.byol.BYOL 
-  weight_path: override
-  representation_size: 256
+  train_dir: /mnt/nfs/home/yunxingl/self-supervised-learning/outputs/2021-11-11/21-47-12
+  weight_file: epoch_999.ckpt
+  representation_size: 2048
   num_targets: 10
   learning_rate: 0.01

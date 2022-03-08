@@ -41,13 +41,14 @@ def train(config: DictConfig) -> Optional[float]:
             if "_target_" in cb_conf:
                 print(f"Instantiating callback <{cb_conf._target_}>")
                 callbacks.append(hydra.utils.instantiate(cb_conf))
-
     trainer = Trainer(**config.trainer, 
                       logger=logger, 
                       callbacks=callbacks)
     train_dataloader, val_dataloader = return_train_val_dataloaders(config)
-    trainer.fit(model, train_dataloader, val_dataloader)
     trainer.logger.log_hyperparams({"save_directory": os.getcwd()})
+
+    print("fitting model")
+    trainer.fit(model, train_dataloader, val_dataloader)
     wandb.finish()
 
     # return metric for sweeper 

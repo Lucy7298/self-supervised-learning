@@ -1,5 +1,5 @@
 from awesome_ssl.models import model_utils
-from awesome_ssl.models.model_utils import LINEAR_FIT_TRAIN_TRANFORM, LINEAR_FIT_VAL_TRANFORM
+from awesome_ssl.models.model_utils import LINEAR_FIT_TRAIN_TRANFORM, LINEAR_FIT_VAL_TRANFORM, build_transform
 import torch
 import torch.nn.functional as F
 
@@ -25,7 +25,9 @@ class BYOL(pl.LightningModule):
                 tau: float, 
                 accumulate_n_batch: int, 
                 optimizer_params: model_utils.ModuleConfig, 
-                transforms: DictConfig, 
+                transforms: DictConfig = None, #set transforms, transform_1, or transform_2
+                transform_1: DictConfig = None, 
+                transform_2: DictConfig = None, 
                 eval_interval: Optional[int] = -1, #linear evaluate after linear evaluate epochs
                 #if < 0, don't linear evaluate 
                 linear_evaluate_config: Optional[model_utils.ModuleConfig] = None, 
@@ -59,13 +61,18 @@ class BYOL(pl.LightningModule):
         self.accumulate_n_batch = accumulate_n_batch
         self.t = tau
 
-        transforms = instantiate(transforms)
-        self.transform_1 = transforms.transform_1 
-        self.transform_2 = transforms.transform_2
+        self.transform_1, self.transform_2 = build_transform(transform_1, transform_2, transforms)
+
     
         self.train_stage = TrainStage.PRETRAIN
 
-    def get_representation(self, x): 
+    def get_representation(self, x, return_projection=False):
+        if return_projection:  
+            return self.online_encoder(x)
+        else: 
+            return self.online_encoder[0](x)
+
+    def get_projection(self, x): 
         return self.prediction_head(self.online_encoder(x))
 
     def calculate_loss(self, online_prediction, target): 
@@ -90,8 +97,8 @@ class BYOL(pl.LightningModule):
         with torch.no_grad(): 
             target_1 = self.target_encoder(enc_1).detach()
             target_2 = self.target_encoder(enc_2).detach()
-        on_pred_1 = self.prediction_head(self.online_encoder(enc_1))
-        on_pred_2 = self.prediction_head(self.online_encoder(enc_2))
+        on_pred_1 = self.get_projection(enc_1)
+        on_pred_2 = self.get_projection(enc_2)
         loss_1 = self.calculate_loss(on_pred_1, target_2)
         loss_2 = self.calculate_loss(on_pred_2, target_1)
         loss = (loss_1 + loss_2).mean()
@@ -100,7 +107,7 @@ class BYOL(pl.LightningModule):
     
     def get_linear_fit_loss(self, image, label, stage): 
         with torch.no_grad(): 
-            on_pred = self.get_representation(image).detach()
+            on_pred = self.get_representation(image, return_projection=True).detach()
         pred = self.classifier(on_pred)
         loss = F.cross_entropy(pred, label)
         with torch.no_grad(): 

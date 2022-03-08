@@ -1,0 +1,16 @@
+# @package _global_
+
+# specify here default training configuration
+defaults:
+  - _self_
+
+callback: 
+  _target_: awesome_ssl.callbacks.metrics.InvarianceMetric
+
+output_dir: invar_data
+
+batch_size: 50
+train_dir: /mnt/nfs/home/yunxingl/self-supervised-learning/outputs/2022-02-01/14-44-38
+dataset_name: imagenette
+
+weight_path: epoch_999.ckpt

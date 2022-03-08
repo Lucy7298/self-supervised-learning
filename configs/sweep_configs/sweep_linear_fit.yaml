@@ -7,7 +7,7 @@ defaults:
   - override /hydra/sweeper: optuna
   - override /hydra/sweeper/sampler: random
 
-optimized_metric: "val/cross_entropy"
+optimized_metric: "val_loss"
 
 hydra:
   job: 
@@ -17,8 +17,8 @@ hydra:
       seed: 123
     direction: minimize
     study_name: learning_rate
-    n_trials: 5
-    n_jobs: 2
+    n_trials: 4
+    n_jobs: 4
 
     search_space:
       model.kwargs.learning_rate: 

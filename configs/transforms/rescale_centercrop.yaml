@@ -1,0 +1,54 @@
+transform_1: 
+  _convert_: all
+  _target_: torchvision.transforms.Compose
+  transforms: 
+  - _target_: torchvision.transforms.RandomApply
+    transforms: 
+    - _target_: torchvision.transforms.ColorJitter
+      brightness: 0.8
+      contrast: 0.8
+      saturation: 0.8
+      hue: 0.2
+    p: 0.3
+  - _target_: torchvision.transforms.RandomGrayscale
+    p: 0.2
+  - _target_: torchvision.transforms.RandomHorizontalFlip
+  - _target_: torchvision.transforms.RandomApply
+    transforms: 
+    - _target_: torchvision.transforms.GaussianBlur
+      kernel_size: [3, 3] 
+      sigma: [1.0, 2.0]
+    p: 0.2
+  - _target_: awesome_ssl.augmentations.crop_and_shift.RandomCenterCrop
+    min_ratio: 0.5
+    max_ratio: 2.0
+  - _target_: torchvision.transforms.Normalize
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+transform_2: 
+  _convert_: all
+  _target_: torchvision.transforms.Compose
+  transforms: 
+  - _target_: torchvision.transforms.RandomApply
+    transforms: 
+    - _target_: torchvision.transforms.ColorJitter
+      brightness: 0.8
+      contrast: 0.8
+      saturation: 0.8
+      hue: 0.2
+    p: 0.3
+  - _target_: torchvision.transforms.RandomGrayscale
+    p: 0.2
+  - _target_: torchvision.transforms.RandomHorizontalFlip
+  - _target_: torchvision.transforms.RandomApply
+    transforms: 
+    - _target_: torchvision.transforms.GaussianBlur
+      kernel_size: [3, 3] 
+      sigma: [1.0, 2.0]
+    p: 0.2
+  - _target_: awesome_ssl.augmentations.crop_and_shift.RandomCenterCrop
+    min_ratio: 0.5
+    max_ratio: 2.0
+  - _target_: torchvision.transforms.Normalize
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]

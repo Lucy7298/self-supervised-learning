@@ -1,4 +1,4 @@
-root: /mnt/nfs/datasets/imagenette/train_imagenette.beton
+root: /mnt/nfs/datasets/imagenette/test_imagenette.beton
 pipelines: 
   image: 
   - _target_: ffcv.fields.decoders.CenterCropRGBImageDecoder

@@ -23,3 +23,6 @@ class JigsawAugmentation(nn.Module):
         grids = grids[torch.arange(B).unsqueeze(-1),indices, :, :, :]
         grids = rearrange(grids, 'b (hs ws) c h w -> b c (hs h) (ws w)', hs=self.y_tiles, ws=self.x_tiles)
         return grids 
+
+    def extra_repr(self) -> str:
+        return f"x_tiles={self.x_tiles}, y_tiles={self.y_tiles}"

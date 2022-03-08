@@ -21,7 +21,7 @@ def write_dataset(train_path, test_path, dest_path):
 
     for (name, ds) in datasets.items():
         writer = DatasetWriter(os.path.join(dest_path, f"{name}_imagenette.beton"), {
-            'image': RGBImageField(),
+            'image': RGBImageField(write_mode="smart", smart_threshold=500*500),
             'label': IntField()
         })
         writer.from_indexed_dataset(ds)

@@ -1,5 +1,5 @@
 from awesome_ssl.models import model_utils
-from awesome_ssl.models.model_utils import LINEAR_FIT_TRAIN_TRANFORM, LINEAR_FIT_VAL_TRANFORM
+from awesome_ssl.models.model_utils import LINEAR_FIT_TRAIN_TRANFORM, LINEAR_FIT_VAL_TRANFORM, build_transform
 import torch
 torch.autograd.set_detect_anomaly(True)
 import torch.nn.functional as F
@@ -25,7 +25,9 @@ class SimCLR(pl.LightningModule):
                 accumulate_n_batch: int, 
                 optimizer_params: model_utils.ModuleConfig, 
                 temperature: float, 
-                transforms: DictConfig,
+                transforms: DictConfig = None, #set transforms, transform_1, or transform_2
+                transform_1: DictConfig = None, 
+                transform_2: DictConfig = None, 
                 eval_interval: Optional[int] = -1, #linear evaluate after linear evaluate epochs
                 #if < 0, don't linear evaluate 
                 linear_evaluate_config: Optional[model_utils.ModuleConfig] = None, 
@@ -41,19 +43,16 @@ class SimCLR(pl.LightningModule):
         self.automatic_optimization = False
         self.accumulate_n_batch = accumulate_n_batch
         self.optimizer_params = optimizer_params
-
-        transforms = instantiate(transforms)
-        self.transform_1 = transforms.transform_1
-        print("transform 1", self.transform_1)
-        self.transform_2 = transforms.transform_2 
-        print("transform 2", self.transform_2)
-    
+        self.transform_1, self.transform_2 = build_transform(transform_1, transform_2, transforms)
+        print(torch.distributed.is_initialized())
         self.train_stage = TrainStage.PRETRAIN
         self.temperature = temperature 
 
     def get_representation(self, x): 
         return self.encoder(x)
 
+    def get_projection(self, x): 
+        return self.prediction_head(self.encoder(x))
 
     def on_train_epoch_start(self): 
         if self.eval_interval > 0: 
@@ -70,13 +69,19 @@ class SimCLR(pl.LightningModule):
 
     def get_pretrain_loss(self, enc_1, enc_2, stage): 
         # select indexes 
-        enc_1 = self.prediction_head(self.encoder(enc_1))
+        enc_1 = self.get_projection(enc_1)
         enc_1 = F.normalize(enc_1, dim=1)
-        enc_1_all = model_utils.concat_all_gather(self, enc_1)
+        if torch.distributed.is_initialized(): 
+            enc_1_all = model_utils.concat_all_gather(self, enc_1)
+        else: 
+            enc_1_all = enc_1
 
-        enc_2 = self.prediction_head(self.encoder(enc_2))
+        enc_2 = self.get_projection(enc_2)
         enc_2 =  F.normalize(enc_2, dim=1)
-        enc_2_all = model_utils.concat_all_gather(self, enc_2)
+        if torch.distributed.is_initialized(): 
+            enc_2_all = model_utils.concat_all_gather(self, enc_2)
+        else: 
+            enc_2_all = enc_2
 
         batch_samples = torch.cat((enc_1, enc_2), axis=0)
         all_samples = torch.cat((enc_1_all, enc_2_all), axis=0)

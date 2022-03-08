@@ -1,0 +1,11 @@
+# @package _global_
+defaults: 
+  - _self_
+  - train_dataset: imagenette.yaml
+  - val_dataset: imagenette_val.yaml
+  - trainer: default.yaml
+  
+trainer: 
+  strategy: null
+
+num_workers: 4

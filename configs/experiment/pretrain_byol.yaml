@@ -3,16 +3,21 @@
 defaults:
   - override /trainer: default.yaml
   - override /model: byol.yaml
-  - override /transforms: no_greyscale_no_crop.yaml
+  - override /transforms: simclr_default.yaml
+  - override /callbacks: pretrain_callbacks.yaml 
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
 logger: 
   wandb: 
-    name: byol_no_greyscale_no_crop
-    group: simclr_experiment
+    name: byol_default_crop_2
+    group: byol_retrain_checkpoint
     job_type: "pretrain"
+
+model: 
+  kwargs: 
+    eval_interval: -1
 
 trainer: 
   max_epochs: 1000

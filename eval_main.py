@@ -1,17 +1,15 @@
 import hydra
 from omegaconf import DictConfig
-import pprint
 
-@hydra.main(config_path="configs/", config_name="config.yaml")
+@hydra.main(config_path="configs/", config_name="evaluate_config.yaml")
 def main(config: DictConfig):
 
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
-    from awesome_ssl.train import train
+    from awesome_ssl.evaluate import evaluate
     
-    pprint.pprint(config)
-    # Train model
-    return train(config)
+    # Debug model
+    return evaluate(config)
 
 
 if __name__ == "__main__":

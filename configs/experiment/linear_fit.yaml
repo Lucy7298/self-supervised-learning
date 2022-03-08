@@ -11,21 +11,11 @@ defaults:
   - override /model: byol_eval.yaml
   - override /train_dataset: imagenette.yaml
   - override /val_dataset: imagenette_val.yaml
-  - override /logger: wandb_linear_fit.yaml
   - override /callbacks: linear_fit_callbacks.yaml
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
 seed: 12345
-
-model: 
-  kwargs: 
-    model_class: awesome_ssl.models.byol.BYOL
-    weight_path: /mnt/nfs/home/yunxingl/self-supervised-learning/outputs/2021-11-11/21-47-12/checkpoints/epoch_999.ckpt
-
-logger: 
-  wandb: 
-    group: byol_edit_1
 
 num_workers: 4
