@@ -6,7 +6,7 @@ defaults:
   - model: byol.yaml
   - callbacks: pretrain_callbacks.yaml
   - train_dataset: imagenette.yaml
-  - val_dataset: imagenette_val.yaml
+  - val_dataset: imagenette.yaml
   - trainer: default.yaml
   - logger: wandb_pretrain.yaml
   - sweep_configs: null

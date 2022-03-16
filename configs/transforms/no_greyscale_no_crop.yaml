@@ -1,7 +1,6 @@
-transform_1:
-  _convert_: all
-  _target_: torchvision.transforms.Compose
-  transforms:
+_convert_: all
+global:
+  view_1: 
   - _target_: torchvision.transforms.RandomApply
     transforms:
     - _target_: torchvision.transforms.ColorJitter
@@ -23,10 +22,7 @@ transform_1:
   - _target_: torchvision.transforms.RandomSolarize
     threshold: 0.5
     p: 0.2
-transform_2:
-  _convert_: all
-  _target_: torchvision.transforms.Compose
-  transforms:
+  view_2:
   - _target_: torchvision.transforms.RandomApply
     transforms:
     - _target_: torchvision.transforms.ColorJitter

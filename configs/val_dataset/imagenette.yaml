@@ -1,3 +1,3 @@
-root: /mnt/nfs/datasets/imgnet_betons/imgnet_train_320px.beton
+root: /mnt/nfs/datasets/imagenette/test_imagenette.beton
 additional_fields: # mapping of field name to type 
   label : label 

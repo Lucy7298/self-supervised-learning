@@ -1,10 +1,3 @@
-_target_: torchvision.datasets.ImageFolder
-root: /mnt/nfs/home/yunxingl/imagenette2/train
-transform: 
-  _target_: torchvision.transforms.Compose
-  transforms: 
-  - _target_: torchvision.transforms.Resize
-    size: 224
-  - _target_: torchvision.transforms.CenterCrop
-    size: 224
-  - _target_: torchvision.transforms.ToTensor
+root: /mnt/nfs/datasets/imagenette/train_imagenette.beton
+additional_fields: # mapping of field name to type 
+  label : label 

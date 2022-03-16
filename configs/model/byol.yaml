@@ -20,10 +20,4 @@ kwargs:
     target: torch.optim.Adam
     kwargs: 
       lr: 3.0e-4
-  eval_interval: 50
-  linear_evaluate_config: 
-    target: torch.nn.Linear
-    kwargs: 
-      in_features: 256  # in features
-      out_features: 10 # out features
 

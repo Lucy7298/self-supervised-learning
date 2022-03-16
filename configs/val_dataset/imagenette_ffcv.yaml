@@ -1,8 +1,0 @@
-root: /mnt/nfs/datasets/imagenette/test_imagenette.beton
-pipelines: 
-  image: 
-  - _target_: ffcv.fields.decoders.CenterCropRGBImageDecoder
-    output_size: [224, 224]
-    ratio: 1.0
-  - _target_: ffcv.transforms.ToTensor
-  - _target_: ffcv.transforms.ToTorchImage

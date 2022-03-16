@@ -21,7 +21,6 @@ model:
 
 trainer: 
   max_epochs: 1000
-  precision: 32
 
-num_workers: -1 # use 4 * number of GPUs
+num_workers: 2 # use 4 * number of GPUs
 batch_size: 32
