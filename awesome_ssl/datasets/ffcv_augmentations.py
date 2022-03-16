@@ -70,4 +70,5 @@ class ModuleWrapper(Operation):
         return apply_module
 
     def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
+        assert not previous_state.jit_mode
         return previous_state, AllocationQuery(previous_state.shape, previous_state.dtype)
