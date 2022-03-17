@@ -26,11 +26,23 @@ def update_similarity_table(similarity_per_data, y, total_y, device):
     update = (similarity_per_data.t() @ M)
     return update 
 
+def return_mean_sims(sim_matrix, confusion_matrix): 
+    N = sim_matrix.shape[0]
+    actual_counts = confusion_matrix.sum()
+    actual_sims = sim_matrix.diag().sum()
+    actual_dissims = (sim_matrix.sum() - sim_matrix.diag().sum() ) / (N - 1)
+    mean_sims = (actual_sims / actual_counts).item()
+    mean_dissims = (actual_dissims / actual_counts).item()
+    return mean_sims, mean_dissims
 
+
+def return_accuracy(confusion_matrix): 
+    return (confusion_matrix.diag().sum() / confusion_matrix.sum()).item()
 
 class RelativeDistance(Callback): 
-    def __init__(self): 
+    def __init__(self, examples_dir ="/mnt/nfs/home/yunxingl/imagenette2/examples"): 
         super().__init__()
+        self.examples_dir = examples_dir
         self.reset_state()
 
     def reset_state(self): 
@@ -47,7 +59,7 @@ class RelativeDistance(Callback):
 
     def initialize_examples(self, eval_dataloader):
         class_to_idx = eval_dataloader.dataset.class_to_idx 
-        dataset = ImageFolder("/mnt/nfs/home/yunxingl/imagenette2/examples", 
+        dataset = ImageFolder(self.examples_dir, 
                         transform=RELATIVE_DISTANCE_TRANFORM)
         my_idx_to_class = dict(map(reversed, dataset.class_to_idx.items()))
         images = []
@@ -139,7 +151,18 @@ class RelativeDistance(Callback):
                 "proj_confusion_sim": self.proj_confusion_sim, 
                 "sum_sim_proj": self.proj_sim, 
                 "sum_sim_rep": self.rep_sim}
-        data.update(additional_data)
+        mean_sims, mean_dissims = return_mean_sims(data["sum_sim_rep"], 
+                                                   data["rep_confusion_sim"])
+        summary = {
+            "accuracy": return_accuracy(self.rep_confusion_sim), 
+            "similarity_same_class": mean_sims, 
+            "similarity_diff_class": mean_dissims
+        }
+        all_data = {
+            "metadata": data, 
+            "data": data, 
+            "summary": summary
+        }
         with open(output_path, 'wb') as handle: 
             pickle.dump(data, handle)
         self.reset_state()

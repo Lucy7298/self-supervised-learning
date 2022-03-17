@@ -2,6 +2,8 @@ outputs/*
 outputs/
 multirun/
 multirun/*
+notebook/
+notebook/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -24,53 +24,28 @@ class BYOL(pl.LightningModule):
                 predictor_params: model_utils.ModuleConfig,
                 tau: float, 
                 accumulate_n_batch: int, 
-                optimizer_params: model_utils.ModuleConfig, 
-                transforms: DictConfig = None, #set transforms, transform_1, or transform_2
-                transform_1: DictConfig = None, 
-                transform_2: DictConfig = None, 
-                eval_interval: Optional[int] = -1, #linear evaluate after linear evaluate epochs
-                #if < 0, don't linear evaluate 
-                linear_evaluate_config: Optional[model_utils.ModuleConfig] = None, 
-                randominit_target: Optional[bool] = True): 
+                optimizer_params: model_utils.ModuleConfig): 
         super().__init__()
         self.save_hyperparameters()
         self.online_encoder = torch.nn.Sequential(
             model_utils.build_module(encoder_params), 
             model_utils.build_module(projector_params)
         )
-        if randominit_target: 
-            print("randomly initializing target encoder...")
-            self.target_encoder = torch.nn.Sequential(
-                model_utils.build_module(encoder_params), 
-                model_utils.build_module(projector_params)
-            )
-        else: 
-            print("copying target encoder...")
-            self.target_encoder = copy.deepcopy(self.online_encoder)
-        self.eval_interval = eval_interval
-        if self.eval_interval > 0: 
-            self.classifier = model_utils.build_module(linear_evaluate_config)
+
+        self.target_encoder = copy.deepcopy(self.online_encoder)
 
         for target_param in self.target_encoder.parameters(): 
             target_param.requires_grad = False 
 
         self.prediction_head = model_utils.build_module(predictor_params)
 
-        self.automatic_optimization = False
         self.optimizer_params = optimizer_params
         self.accumulate_n_batch = accumulate_n_batch
         self.t = tau
-
-        self.transform_1, self.transform_2 = build_transform(transform_1, transform_2, transforms)
-
     
-        self.train_stage = TrainStage.PRETRAIN
+    def get_representation(self, x):
+        return self.online_encoder[0](x)
 
-    def get_representation(self, x, return_projection=False):
-        if return_projection:  
-            return self.online_encoder(x)
-        else: 
-            return self.online_encoder[0](x)
 
     def get_projection(self, x): 
         return self.prediction_head(self.online_encoder(x))
@@ -79,19 +54,6 @@ class BYOL(pl.LightningModule):
         prediction_norm = torch.nn.functional.normalize(online_prediction, dim=-1)
         target_norm = torch.nn.functional.normalize(target, dim=-1)  
         return torch.sum((prediction_norm - target_norm)**2, dim=-1)
-
-    def on_train_epoch_start(self): 
-        if self.eval_interval > 0: 
-            if self.current_epoch % self.eval_interval == 0: 
-                print(f"epoch {self.current_epoch}: doing linear fit")
-                self.online_encoder = self.online_encoder.eval()
-                self.prediction_head = self.prediction_head.eval() 
-                self.train_stage = TrainStage.LINEAR_FIT
-            else: 
-                print(f"epoch {self.current_epoch}: doing pretrain")
-                self.online_encoder = self.online_encoder.train()
-                self.prediction_head = self.prediction_head.train()
-                self.train_stage = TrainStage.PRETRAIN
 
     def get_pretrain_loss(self, enc_1, enc_2, stage): 
         with torch.no_grad(): 
@@ -104,20 +66,9 @@ class BYOL(pl.LightningModule):
         loss = (loss_1 + loss_2).mean()
         self.log(f"{stage}/pretrain_loss", loss)
         return loss
-    
-    def get_linear_fit_loss(self, image, label, stage): 
-        with torch.no_grad(): 
-            on_pred = self.get_representation(image, return_projection=True).detach()
-        pred = self.classifier(on_pred)
-        loss = F.cross_entropy(pred, label)
-        with torch.no_grad(): 
-            self.log(f"{stage}/linear_top1", accuracy(pred, label))
-            self.log(f"{stage}/linear_top5", accuracy(pred, label, top_k=5))
-            self.log(f"{stage}/linear_cross_entropy", loss)
-        return loss
 
     def training_step(self, batch, batch_idx): 
-        X, y = batch
+        img_1, img_2, y = batch
         if self.eval_interval < 0: 
             opt_enc = self.optimizers()
         else: 

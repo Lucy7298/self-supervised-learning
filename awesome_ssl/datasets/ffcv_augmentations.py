@@ -43,32 +43,6 @@ class RandomGrayscale(Operation):
         return grayscale
 
     def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
-        return (replace(previous_state, jit_mode=False), 
+        return (replace(previous_state, jit_mode=True), 
                 AllocationQuery(previous_state.shape, previous_state.dtype))
 
-
-class ModuleWrapper(Operation):
-    """Transform using the given torch.nn.Module
-    Parameters
-    ----------
-    module: torch.nn.Module
-        The module for transformation
-    """
-    def __init__(self, module: torch.nn.Module):
-        super().__init__()
-        self.module = module
-
-    def generate_code(self) -> Callable:
-        my_range = Compiler.get_iterator()
-
-        def apply_module(inp, dst):
-            for i in my_range(inp.shape[0]):
-                dst[i] = self.module(inp[i])
-            return dst
-
-        apply_module.is_parallel = True
-        return apply_module
-
-    def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
-        assert not previous_state.jit_mode
-        return previous_state, AllocationQuery(previous_state.shape, previous_state.dtype)
