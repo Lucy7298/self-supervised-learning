@@ -5,14 +5,17 @@ defaults:
   - override /model: byol.yaml
   - override /transforms: simclr_default.yaml
   - override /callbacks: pretrain_callbacks.yaml 
+  - override /train_dataset: null # will be overridden on command line
+  - override /val_dataset: null # will be overridden on command line
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
+#train_dataset: concat_datasets(['train_dataset/imagenette.yaml', subset_dataset('train_dataset/places.yaml', 1000)])
+
 logger: 
   wandb: 
-    name: byol_default_crop_2
-    group: byol_retrain_checkpoint
+    group: byol_pretrain_dsets
     job_type: "pretrain"
 
 model: 

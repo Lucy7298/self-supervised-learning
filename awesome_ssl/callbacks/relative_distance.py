@@ -4,7 +4,7 @@ import torchvision.transforms as T
 from awesome_ssl.augmentations.crop_and_shift import RandomCenterCrop
 import torch
 import torch.nn.functional as F
-from torchvision.datasets import ImageFolder
+from torchvision.datasets import ImageFolder, VisionDataset
 from torchmetrics import MeanMetric
 from collections import defaultdict
 import pandas as pd 
@@ -45,7 +45,12 @@ class RelativeDistance(Callback):
         self.labels = None
         self.num_classes = None
 
+        self.sum_margin = 0 
+        self.min_margin = 100
+
+
     def initialize_examples(self, eval_dataloader):
+        assert isinstance(eval_dataloader, VisionDataset)
         class_to_idx = eval_dataloader.dataset.class_to_idx 
         dataset = ImageFolder("/mnt/nfs/home/yunxingl/imagenette2/examples", 
                         transform=RELATIVE_DISTANCE_TRANFORM)
@@ -66,10 +71,11 @@ class RelativeDistance(Callback):
 
     def get_predicted_distance_label(self, embeddings, class_rep): 
         distances = torch.cdist(embeddings, class_rep) # num_data x (num_class * size of example dataloader)
-
+        print(distances.shape, "before reorder")
         # reshape into num_data x num_class x size of example dataloader 
         dim_permutations = torch.argsort(self.labels)
         distances = distances[:, dim_permutations]
+        print(distances.shape, "after reorder")
         distances = distances.reshape(len(distances), self.num_classes, -1)
 
         # take mean across size of example dataloader 
@@ -85,8 +91,20 @@ class RelativeDistance(Callback):
         dim_permutations = torch.argsort(self.labels)
         sims = sims[:, dim_permutations]
         sims = sims.reshape(len(sims), self.num_classes, -1)
+
         mean_sim = torch.mean(sims, dim=-1)
-        return mean_sim, torch.argmax(mean_sim, dim=-1)
+        prediction = torch.argmax(mean_sim, dim=-1)
+
+        # compute margins 
+        N = mean_sim.shape[0]
+        labels = torch.sort(self.labels)
+        max_prediction = torch.amax(mean_sim, dim=-1)
+        negatives = mean_sim.clone()
+        negatives[torch.arange(N), labels] = 0 
+        max_negative = torch.amax(negatives, dim=-1)
+        sum_margin = torch.sum(max_prediction - max_negative)
+
+        return mean_sim, prediction, sum_margin 
 
     def calculate_confusion_matrix(self, pred, actual): 
         pred = F.one_hot(pred, self.num_classes).bool()
@@ -110,12 +128,17 @@ class RelativeDistance(Callback):
         self.proj_confusion_dist += self.calculate_confusion_matrix(dist_proj_label, y)
 
         # get max cosine similarities 
-        mean_sim_rep, sim_rep_label = self.get_predicted_sim_label(embeddings, zero_shot_rep)
-        mean_sim_proj, sim_proj_label = self.get_predicted_sim_label(projections, zero_shot_proj)
+        mean_sim_rep, sim_rep_label, margin = self.get_predicted_sim_label(embeddings, zero_shot_rep)
+        mean_sim_proj, sim_proj_label, _ = self.get_predicted_sim_label(projections, zero_shot_proj)
         self.rep_confusion_sim += self.calculate_confusion_matrix(sim_rep_label, y)
         self.proj_confusion_sim += self.calculate_confusion_matrix(sim_proj_label, y)
         self.proj_sim += update_similarity_table(mean_sim_proj, y, self.num_classes, pl_module.device)
         self.rep_sim += update_similarity_table(mean_sim_rep, y, self.num_classes, pl_module.device)
+
+        # update margin stats
+        self.sum_margin += margin
+        self.min_margin = min(self.min_margin, torch.amin(margin))
+        
 
 
     def on_validation_start(self, trainer, pl_module): 
@@ -132,14 +155,34 @@ class RelativeDistance(Callback):
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self.update_confusion_matrix(pl_module, batch)
 
+
+    def compute_summaries(self): 
+        # compute accuracies 
+        assert self.rep_confusion_dist.sum().item() == self.rep_confusion_sim.sum().item() == \
+               self.proj_confusion_dist.sum().item() == self.proj_confusion_sim.sum().item() 
+
+        num_examples = self.rep_confusion_dist.sum().item()
+        accuracy_sim = self.rep_confusion_sim.diag().sum() / num_examples 
+        mean_sim_same_class = self.rep_sim.diag().sum() / num_examples 
+        mean_sim_diff_class = (self.rep_sim.sum() - self.rep_sim.diag().sum() ) / num_examples 
+        return {
+            "10shot_accuracy": accuracy_sim,
+            "mean_similarity_same_class": mean_sim_same_class, 
+            "mean_similarity_different_class": mean_sim_diff_class, 
+            "margin": self.sum_margin / num_examples, 
+            "min_margin": self.min_margin
+        }
+
+
     def save_data(self, output_path, additional_data): 
-        data = {"rep_confusion_dist": self.rep_confusion_dist, 
+        data = {}
+        data["data"] = {"rep_confusion_dist": self.rep_confusion_dist, 
                 "rep_confusion_sim": self.rep_confusion_sim, 
                 "proj_confusion_dist": self.proj_confusion_dist, 
                 "proj_confusion_sim": self.proj_confusion_sim, 
                 "sum_sim_proj": self.proj_sim, 
-                "sum_sim_rep": self.rep_sim}
-        data.update(additional_data)
-        with open(output_path, 'wb') as handle: 
-            pickle.dump(data, handle)
+                "sum_sim_rep": self.rep_sim} # tensors for data 
+        data["metadata"] = additional_data
+        data["summary"] = self.compute_summaries()
+        torch.save(data, output_path)
         self.reset_state()

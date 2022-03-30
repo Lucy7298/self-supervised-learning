@@ -1,0 +1,12 @@
+_target_: awesome_ssl.datasets.custom_datasets.SubsetFolder
+root: /mnt/cfs/datasets/coco2014/images
+dirname_subset: 
+- train2014 
+transform: 
+  _target_: torchvision.transforms.Compose
+  transforms: 
+  - _target_: torchvision.transforms.Resize
+    size: 224
+  - _target_: torchvision.transforms.CenterCrop
+    size: 224
+  - _target_: torchvision.transforms.ToTensor

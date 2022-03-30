@@ -58,13 +58,13 @@ class SimCLR(pl.LightningModule):
         if self.eval_interval > 0: 
             if self.current_epoch % self.eval_interval == 0: 
                 print(f"epoch {self.current_epoch}: doing linear fit")
-                self.encoder = self.encoder.eval()
-                self.prediction_head = self.prediction_head.eval() 
+                # self.encoder = self.encoder.eval()
+                # self.prediction_head = self.prediction_head.eval() 
                 self.train_stage = TrainStage.LINEAR_FIT
             else: 
                 print(f"epoch {self.current_epoch}: doing pretrain")
-                self.encoder = self.encoder.train()
-                self.prediction_head = self.prediction_head.train()
+                # self.encoder = self.encoder.train()
+                # self.prediction_head = self.prediction_head.train()
                 self.train_stage = TrainStage.PRETRAIN
 
     def get_pretrain_loss(self, enc_1, enc_2, stage): 
@@ -117,18 +117,17 @@ class SimCLR(pl.LightningModule):
         else: 
             opt_enc, opt_class = self.optimizers()
             
-        if self.train_stage == TrainStage.PRETRAIN: 
-            with torch.no_grad(): 
-                enc_1, enc_2 = self.transform_1(X), self.transform_2(X)
-            # pass through network 
-            loss = self.get_pretrain_loss(enc_1, enc_2, "train")
-            self.manual_backward(loss)
-            if batch_idx % self.accumulate_n_batch == 0: 
-                opt_enc.step()
-                opt_enc.zero_grad()
+        with torch.no_grad(): 
+            enc_1, enc_2 = self.transform_1(X), self.transform_2(X)
+        # pass through network 
+        loss = self.get_pretrain_loss(enc_1, enc_2, "train")
+        self.manual_backward(loss)
+        if batch_idx % self.accumulate_n_batch == 0: 
+            opt_enc.step()
+            opt_enc.zero_grad()
 
         # complete update step for classifier without label leakage 
-        elif self.train_stage == TrainStage.LINEAR_FIT: 
+        if self.train_stage == TrainStage.LINEAR_FIT: 
             with torch.no_grad(): 
                 X = LINEAR_FIT_TRAIN_TRANFORM(X)
             class_loss = self.get_linear_fit_loss(X, y, "train")
@@ -146,9 +145,8 @@ class SimCLR(pl.LightningModule):
             # log metrics on linear evaluation on validation set 
             self.get_linear_fit_loss(X, y, "val")
 
-        elif self.train_stage == TrainStage.PRETRAIN: 
-            enc_1, enc_2 = self.transform_1(X), self.transform_2(X)
-            self.get_pretrain_loss(enc_1, enc_2, "val")
+        enc_1, enc_2 = self.transform_1(X), self.transform_2(X)
+        self.get_pretrain_loss(enc_1, enc_2, "val")
 
     def configure_optimizers(self): 
         # encoder optimizer

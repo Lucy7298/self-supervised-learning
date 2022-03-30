@@ -25,8 +25,6 @@ def train(config: DictConfig) -> Optional[float]:
         Optional[float]: Metric score for hyperparameter optimization.
     """
 
-    model = build_module(config.model, transforms=config.transforms)
-    print(model)
     logger = []
     if "logger" in config:
         for _, lg_conf in config.logger.items():
@@ -41,9 +39,14 @@ def train(config: DictConfig) -> Optional[float]:
             if "_target_" in cb_conf:
                 print(f"Instantiating callback <{cb_conf._target_}>")
                 callbacks.append(hydra.utils.instantiate(cb_conf))
+                
     trainer = Trainer(**config.trainer, 
-                      logger=logger, 
-                      callbacks=callbacks)
+                    logger=logger, 
+                    callbacks=callbacks)
+                    
+    model = build_module(config.model, transforms=config.transforms)
+    print(model)
+
     train_dataloader, val_dataloader = return_train_val_dataloaders(config)
     trainer.logger.log_hyperparams({"save_directory": os.getcwd()})
 

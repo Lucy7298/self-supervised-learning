@@ -1,5 +1,16 @@
-_target_: torchvision.datasets.ImageFolder
-root: /mnt/nfs/home/yunxingl/imagenette2/train
+_target_: awesome_ssl.datasets.custom_datasets.SubsetFolder
+root: /mnt/cfs/datasets/pytorch_imagenet/train
+dirname_subset: 
+- n01440764 # tench 
+- n02102040 # English_springer
+- n02978881 # cassette
+- n03000684 # chain_saw
+- n03028079 # church
+- n03394916 # French_horn
+- n03417042 # garbage_truck
+- n03425413 # gas_pump
+- n03445777 # golf_ball
+- n03888257 # parachute
 transform: 
   _target_: torchvision.transforms.Compose
   transforms: 

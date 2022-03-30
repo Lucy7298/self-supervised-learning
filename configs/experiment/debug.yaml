@@ -1,0 +1,28 @@
+# @package _global_
+
+defaults:
+  - override /trainer: default.yaml
+  - override /model: byol.yaml
+  - override /transforms: simclr_default.yaml
+  - override /callbacks: []
+  - override /train_dataset: imagenette # will be overridden on command line
+  - override /val_dataset: imagenette_val # will be overridden on command line
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+logger: 
+  wandb: 
+    group: debug
+    job_type: "debug"
+
+trainer: 
+  max_epochs: 1
+  precision: 32
+
+model: 
+  kwargs: 
+    eval_interval: -1
+
+num_workers: -1 # use 4 * number of GPUs
+batch_size: 32

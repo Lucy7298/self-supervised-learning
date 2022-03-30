@@ -5,15 +5,16 @@ defaults:
   - override /model: simclr.yaml
   - override /transforms: simclr_default.yaml
   - override /callbacks: pretrain_callbacks.yaml 
+  - override /train_dataset: null # will be overridden on command line
+  - override /val_dataset: null # will be overridden on command line
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
 logger: 
   wandb: 
-    name: simclr_default_with_crop_2
-    group: simclr_experiment
-    job_type: pretrain
+    group: simclr_pretrain_dsets
+    job_type: "pretrain"
 
 trainer: 
   max_epochs: 1000

@@ -1,0 +1,9 @@
+# @package _global_
+
+# specify here default training configuration
+defaults:
+  - _self_
+
+train_dir: /mnt/nfs/home/yunxingl/self-supervised-learning/outputs/2022-02-01/14-44-38
+
+weight_path: epoch_999.ckpt

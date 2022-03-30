@@ -9,7 +9,7 @@ alias pretrain='srun --time=2-00:00:00 --gres=gpu:1080_ti:4 --cpus-per-gpu 4 -n 
 alias evalone='srun --time=2-00:00:00 --gres=gpu:1080_ti:2 --cpus-per-gpu 4 -n 1 --pty python3 main.py +experiment=linear_fit'
 alias getnotebook='
 cd /mnt/nfs/home/yunxingl/self-supervised-learning/notebook
-nohup srun -w deep-gpu-3 -n 1 -c 2 --time=2-00:00:00 --resv-ports=1 bash -c "jupyter notebook --no-browser --port=\$SLURM_STEP_RESV_PORTS --ip 0.0.0.0" > test_nb.log &!
+nohup srun -w deep-gpu-4 -n 1 -c 2 --time=2-00:00:00 --resv-ports=1 bash -c "jupyter notebook --no-browser --port=\$SLURM_STEP_RESV_PORTS --ip 0.0.0.0" > test_nb.log &!
 cat test_nb.log'
 
 pretrain_file () {
@@ -42,3 +42,4 @@ debug_eval_gpu () {
 
 alias go_to_batch_err='cd /mnt/nfs/home/yunxingl/self-supervised-learning/multirun/sbatch'
 alias refresh_shortcut='source ~/self-supervised-learning/bash/useful_command.bashrc'
+alias myqueue='squeue -u yunxingl'

@@ -77,6 +77,14 @@ class InvarianceMetric(Callback):
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self.calculate_invariance(pl_module, batch)
 
+    def compute_summaries(self): 
+        summary = {}
+        for tname in self.transform_invars: 
+            key = f"rep_sim_{tname}"
+            mean = self.metrics[key].mean()
+            summary[tname] = mean
+        return summary
+
     def save_data(self, output_path, additional_data): 
         for key, value in self.moment.items(): 
             self.moment[key] = value / self.samples 
@@ -88,11 +96,13 @@ class InvarianceMetric(Callback):
         for key, value in self.metrics.items(): 
             self.metrics[key] = torch.cat(value, axis=0)
         metrics_df = pd.DataFrame.from_dict(self.metrics)
-        data = {"metrics": metrics_df, 
-                "moments": self.moment, 
-                "transforms": transforms_log}
-        data.update(additional_data)
-        with open(output_path, 'wb') as handle: 
-            pickle.dump(data, handle)
+        data = {} 
+        data["data"] = {"metrics": metrics_df, 
+                        "moments": self.moment, 
+                        "transforms": transforms_log}
+        data["summary"] = self.compute_summaries()
+        data["metadata"] = additional_data
+        
+        torch.save(data, output_path)
 
         self.reset_state()

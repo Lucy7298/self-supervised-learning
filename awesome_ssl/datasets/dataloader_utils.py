@@ -1,51 +1,28 @@
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, ConcatDataset, Subset, Dataset
 from pytorch_lightning.core.datamodule import LightningDataModule
 from torch.cuda import device_count
 import torch
 from hydra.utils import instantiate
+from hydra import compose
 import os
-# from ffcv.loader import Loader, OrderOption
-# from ffcv.fields.basics import IntDecoder
-# from ffcv.transforms import ToTensor, Squeeze, Convert
 
-# def make_loader(path, batch_size, num_workers, image_pipeline): 
-#     pipelines = {
-#         "image": image_pipeline + [Convert(torch.float32)], # should probably change according to config
-#         "label": [IntDecoder(), ToTensor(), Squeeze()]
-#     }
-#     distributed_flag = device_count() > 0
-#     print("device count: ", device_count(), "distributed: ", distributed_flag)
-#     return Loader(path,
-#                 batch_size=batch_size,
-#                 num_workers=num_workers,
-#                 order=OrderOption.RANDOM,
-#                 pipelines=pipelines, 
-#                 distributed=distributed_flag)
+from zmq import device
+from awesome_ssl.datasets.custom_datasets import * 
+CONFIG_PATH = "/mnt/nfs/home/yunxingl/self-supervised-learning/configs"
 
 def return_train_val_dataloaders(config, shuffle_train=True): 
     
     batch_size = config.batch_size
-    if config.num_workers > 0: 
+    
+    num_workers = config.num_workers 
+    if num_workers > 0: 
         num_workers = config.num_workers
     else: 
-        num_workers = max(4*device_count(), 1)
-    print(num_workers)
+        num_workers = 4 * device_count()
+        print(f"using {num_workers} workers")
     
-    _, ext = os.path.splitext(config.train_dataset.root)
-    # if ext == '.beton': 
-    #     train_transforms = instantiate(config.train_dataset.pipelines)
-    #     test_transforms = instantiate(config.val_dataset.pipelines)
-    #     train_dataloader = make_loader(config.train_dataset.root, 
-    #                                    batch_size, 
-    #                                    num_workers, 
-    #                                    train_transforms.image)
-    #     val_dataloader = make_loader(config.val_dataset.root, 
-    #                                  batch_size, 
-    #                                  num_workers, 
-    #                                  test_transforms.image)
-    # else: 
-    train_dataset = instantiate(config.train_dataset)
-    val_dataset = instantiate(config.val_dataset)
+    train_dataset = make_dataset(config.train_dataset)
+    val_dataset = make_dataset(config.val_dataset)
     train_dataloader = DataLoader(train_dataset, 
                         batch_size=batch_size, 
                         shuffle=shuffle_train, 
@@ -59,3 +36,39 @@ def return_train_val_dataloaders(config, shuffle_train=True):
                         num_workers = num_workers)
 
     return train_dataloader, val_dataloader
+
+
+def concat_datasets(relative_path_configs): 
+    all_dsets = []
+    for relative_path in relative_path_configs: 
+        if isinstance(relative_path, str): 
+            dataset = list(instantiate(compose(relative_path)).values())[0]
+        elif isinstance(relative_path, Dataset):
+            dataset = relative_path
+        else:  
+            dataset = relative_path.module # if it is dictconfig, should have been instantiated already 
+        assert isinstance(dataset, Dataset)
+        print(len(dataset))
+        all_dsets.append(dataset)
+
+    return ConcatDataset(all_dsets)
+
+def subset_dataset(relative_path, num_examples, random_seed=0):
+    import random
+    random.seed(random_seed)
+    if isinstance(relative_path, str): 
+        dataset = list(instantiate(compose(relative_path)).values())[0]
+    else: 
+        dataset = relative_path
+    indices = random.sample(list(range(len(dataset))), num_examples)
+    return Subset(dataset, indices)
+
+
+def make_dataset(ds_config): 
+    print(ds_config)
+    if hasattr(ds_config, "func_object"): 
+        command = ds_config.func_object.replace("\\", "")
+        print(command)
+        return eval(command)
+    else: 
+        return instantiate(ds_config)

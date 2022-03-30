@@ -1,0 +1,21 @@
+_target_: awesome_ssl.datasets.custom_datasets.SubsetFolder
+root: /mnt/cfs/datasets/pytorch_imagenet/val
+dirname_subset: 
+- n02093754 # Border_terrier
+- n02096294 # Australian_terrier
+- n02099601 # golden_retriever
+- n02086240 # Shih-Tzu
+- n02087394 # Rhodesian_ridgeback
+- n02088364 # beagle
+- n02089973 # English_foxhound
+- n02105641 # Old_English_sheepdog
+- n02111889 # Samoyed
+- n02115641 # dingo
+transform: 
+  _target_: torchvision.transforms.Compose
+  transforms: 
+  - _target_: torchvision.transforms.Resize
+    size: 224
+  - _target_: torchvision.transforms.CenterCrop
+    size: 224
+  - _target_: torchvision.transforms.ToTensor

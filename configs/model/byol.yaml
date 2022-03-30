@@ -24,6 +24,6 @@ kwargs:
   linear_evaluate_config: 
     target: torch.nn.Linear
     kwargs: 
-      in_features: 256  # in features
+      in_features: 2048  # in features
       out_features: 10 # out features
 

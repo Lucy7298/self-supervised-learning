@@ -5,11 +5,11 @@ defaults:
   - _self_
   - model: byol.yaml
   - callbacks: pretrain_callbacks.yaml
-  - train_dataset: imagenette.yaml
-  - val_dataset: imagenette_val.yaml
   - trainer: default.yaml
   - logger: wandb_pretrain.yaml
   - sweep_configs: null
   - transforms: simclr_default.yaml
+  - train_dataset: imagenette.yaml # dataset configs can be yaml config or string to evaluate 
+  - val_dataset: imagenette_val.yaml # valid modules must be defined in datasets/dataloader_utils.py
 
 batch_size: 50
